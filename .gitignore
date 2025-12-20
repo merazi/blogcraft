@@ -1,0 +1,25 @@
+### Virtual Environment ###
+# Virtual environment folders
+.venv
+venv
+ENV/
+
+### Python Build and Distribution ###
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+### Cache and Compiled Files ###
+# Byte-compiled files
+__pycache__/
+*.pyc
+*.pyd
+
+# Testing and Coverage
+.coverage
+htmlcov/
+
+# Editor/OS Specific Files (Optional but Recommended)
+*~ # Emacs backup files
+.vscode/
