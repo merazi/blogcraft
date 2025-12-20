@@ -15,6 +15,7 @@ build/
 __pycache__/
 *.pyc
 *.pyd
+*.spec
 
 # Testing and Coverage
 .coverage

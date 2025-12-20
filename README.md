@@ -31,9 +31,9 @@ All key settings for **pysite** are managed in the `config.json` file. You can c
 ```json
 {
     "site_title": "My Personal Blog",
-    "md_dir": "content",
-    "public_dir": "dist",
-    "post_filename": "index.md",
+    "md_dir": "md",
+    "public_dir": "public",
+    "post_filename": "post.md",
     "assets_dir": "files",
     "default_editor": "nano"
 }
