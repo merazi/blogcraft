@@ -4,16 +4,34 @@ import markdown
 import glob
 import argparse
 import datetime
-import subprocess # NEW: For launching the text editor
+import subprocess 
+import json # NEW: Import for JSON handling
 
-# --- Configuration ---
-MD_DIR = 'md'
-PUBLIC_DIR = 'public'
-SITE_TITLE = "My Awesome Static Site"
-POST_FILENAME = 'article.md'
-ASSETS_DIR = 'media'
+# --- Configuration Holder ---
+CONFIG = {}
 
-# --- HTML Templates (Omitted for brevity, assumed to be the same) ---
+# --- JSON Configuration Loader ---
+
+def load_config(config_file='config.json'):
+    """Loads configuration settings from a JSON file."""
+    global CONFIG
+    try:
+        with open(config_file, 'r', encoding='utf-8') as f:
+            CONFIG.update(json.load(f))
+        
+        print(f"Loaded configuration from {config_file}.")
+
+    except FileNotFoundError:
+        print(f"🛑 Error: Configuration file '{config_file}' not found.")
+        print("Please create a 'config.json' file in the project root.")
+        exit(1)
+    except json.JSONDecodeError as e:
+        print(f"🛑 Error: Invalid JSON format in '{config_file}'. Details: {e}")
+        exit(1)
+    
+# --- HTML Templates (Using CONFIG values) ---
+# NOTE: Templates are unchanged, but placeholders like {site_title} will use CONFIG values now.
+
 BASE_TEMPLATE = """
 <!doctype html>
 <html lang="en">
@@ -62,13 +80,12 @@ INDEX_CONTENT_TEMPLATE = """
 </ul>
 """
 
-# --- Article Template (Unchanged) ---
 NEW_ARTICLE_TEMPLATE = """
 # {title}
 
 **Date:** {date}
 
-This is the content for your new article, '{slug}'.
+This is the content for your new article, '{slug}'. 
 
 Start writing your awesome content here! You can include assets in the accompanying `{assets_dir}` folder.
 
@@ -78,62 +95,80 @@ Start writing your awesome content here! You can include assets in the accompany
 * List item 2
 """
 
-# --- Site Generation Functions (Unchanged) ---
+# --- Site Generation Functions (Updated to use CONFIG) ---
 
 def clean_public_directory():
-    # ... (function body is the same)
-    print(f"Cleaning existing '{PUBLIC_DIR}' directory...")
-    if os.path.exists(PUBLIC_DIR):
-        shutil.rmtree(PUBLIC_DIR)
-    os.makedirs(PUBLIC_DIR, exist_ok=True)
+    """Removes the public directory and recreates it."""
+    public_dir = CONFIG['public_dir']
+    print(f"Cleaning existing '{public_dir}' directory...")
+    if os.path.exists(public_dir):
+        shutil.rmtree(public_dir)
+    os.makedirs(public_dir, exist_ok=True)
     print("Done cleaning.")
 
 def generate_post_page(md_path, html_target_path):
-    # ... (function body is the same)
+    """
+    Converts a single article.md file to HTML and writes the full page.
+    """
+    post_filename = CONFIG['post_filename']
+    site_title = CONFIG['site_title']
+
     try:
+        # 1. Read Markdown content
         with open(md_path, 'r', encoding='utf-8') as f:
             md_content = f.read()
 
+        # 2. Convert Markdown to HTML
         html_content = markdown.markdown(md_content)
-
+        
         import re
         match = re.search(r'<h1>(.*?)<\/h1>|<h2>(.*?)<\/h2>', html_content, re.IGNORECASE)
+        # Fallback title if no H1/H2 found
         default_title = os.path.basename(os.path.dirname(md_path)).replace('-', ' ').title()
         post_title = (match.group(1) or match.group(2)) if match else default_title
 
+        # 3. Apply post content template
         final_content = POST_CONTENT_TEMPLATE.format(
             post_title=post_title,
             html_content=html_content
         )
 
+        # 4. Apply base template
         full_html = BASE_TEMPLATE.format(
-            title=f"{post_title} | {SITE_TITLE}",
-            site_title=SITE_TITLE,
+            title=f"{post_title} | {site_title}",
+            site_title=site_title,
             content=final_content,
             year=datetime.datetime.now().year
         )
 
+        # 5. Write to target file
         os.makedirs(os.path.dirname(html_target_path), exist_ok=True)
         with open(html_target_path, 'w', encoding='utf-8') as f:
             f.write(full_html)
-
-        print(f"  ✅ Generated post: {os.path.relpath(html_target_path, PUBLIC_DIR)}")
-        return post_title, os.path.relpath(html_target_path, PUBLIC_DIR)
+            
+        print(f"  ✅ Generated post: {os.path.relpath(html_target_path, CONFIG['public_dir'])}")
+        return post_title, os.path.relpath(html_target_path, CONFIG['public_dir'])
 
     except Exception as e:
         print(f"  ❌ Error processing {md_path}: {e}")
         return None, None
 
 def copy_assets(source_dir, target_dir):
-    # ... (function body is the same)
+    """
+    Copies all content of the source_dir *except* the markdown file.
+    """
+    post_filename = CONFIG['post_filename']
+    assets_dir = CONFIG['assets_dir']
+    
     for item in os.listdir(source_dir):
         s = os.path.join(source_dir, item)
         d = os.path.join(target_dir, item)
-
-        if item == POST_FILENAME:
+        
+        if item == post_filename:
             continue
-
+            
         if os.path.isdir(s):
+            # For a directory like 'media', copy its entire tree
             if os.path.exists(d):
                 shutil.rmtree(d)
             shutil.copytree(s, d)
@@ -143,7 +178,12 @@ def copy_assets(source_dir, target_dir):
             print(f"  ➡️ Copied file: {item}")
 
 def generate_index_page(post_links):
-    # ... (function body is the same)
+    """
+    Creates the index.html page with a list of links to all posts.
+    """
+    site_title = CONFIG['site_title']
+    public_dir = CONFIG['public_dir']
+
     print("\nGenerating index.html...")
     list_items = ""
     for title, url in post_links:
@@ -152,20 +192,25 @@ def generate_index_page(post_links):
     final_content = INDEX_CONTENT_TEMPLATE.format(post_list=list_items)
 
     full_html = BASE_TEMPLATE.format(
-        title=f"Home | {SITE_TITLE}",
-        site_title=SITE_TITLE,
+        title=f"Home | {site_title}",
+        site_title=site_title,
         content=final_content,
         year=datetime.datetime.now().year
     )
 
-    index_path = os.path.join(PUBLIC_DIR, 'index.html')
+    index_path = os.path.join(public_dir, 'index.html')
     with open(index_path, 'w', encoding='utf-8') as f:
         f.write(full_html)
-
+        
     print(f"  ✅ Generated: {index_path}")
 
 def generate_404_page():
-    # ... (function body is the same)
+    """
+    Creates a simple 404.html page.
+    """
+    site_title = CONFIG['site_title']
+    public_dir = CONFIG['public_dir']
+
     print("Generating 404.html...")
     final_content = """
     <article>
@@ -176,67 +221,76 @@ def generate_404_page():
         <a href="/" role="button">Go to Home</a>
     </article>
     """
-
+    
     full_html = BASE_TEMPLATE.format(
-        title=f"404 | {SITE_TITLE}",
-        site_title=SITE_TITLE,
+        title=f"404 | {site_title}",
+        site_title=site_title,
         content=final_content,
         year=datetime.datetime.now().year
     )
 
-    not_found_path = os.path.join(PUBLIC_DIR, '404.html')
+    not_found_path = os.path.join(public_dir, '404.html')
     with open(not_found_path, 'w', encoding='utf-8') as f:
         f.write(full_html)
-
+        
     print(f"  ✅ Generated: {not_found_path}")
 
 def generate_site():
-    # ... (function body is the same)
-    if not os.path.exists(MD_DIR):
-        print(f"🛑 Error: Source directory '{MD_DIR}' not found. Please create it and add your content.")
+    """Main function to orchestrate the site generation."""
+    md_dir = CONFIG['md_dir']
+    public_dir = CONFIG['public_dir']
+    post_filename = CONFIG['post_filename']
+
+    if not os.path.exists(md_dir):
+        print(f"🛑 Error: Source directory '{md_dir}' not found. Please create it and add your content.")
         return
 
     clean_public_directory()
 
     all_post_links = []
 
-    print(f"\n--- Processing '{MD_DIR}' contents ---")
-
-    for md_article_path in glob.glob(os.path.join(MD_DIR, '**', POST_FILENAME), recursive=True):
-
+    print(f"\n--- Processing '{md_dir}' contents ---")
+    
+    # We look for the POST_FILENAME in any subdirectory of MD_DIR
+    for md_article_path in glob.glob(os.path.join(md_dir, '**', post_filename), recursive=True):
+        
         post_dir = os.path.dirname(md_article_path)
-        rel_post_dir = os.path.relpath(post_dir, MD_DIR)
-        target_html_path = os.path.join(PUBLIC_DIR, rel_post_dir, 'index.html')
-
+        rel_post_dir = os.path.relpath(post_dir, md_dir)
+        target_html_path = os.path.join(public_dir, rel_post_dir, 'index.html')
+        
         print(f"\nProcessing post in: {post_dir}")
-
+        
         post_title, post_url = generate_post_page(md_article_path, target_html_path)
-
+        
         if post_title and post_url:
             all_post_links.append((post_title, post_url))
-
+            
             target_post_dir = os.path.dirname(target_html_path)
             copy_assets(post_dir, target_post_dir)
-
+            
     all_post_links.reverse()
-
+    
     generate_index_page(all_post_links)
     generate_404_page()
 
     print("\n✨ Site generation complete! Your static site is in the 'public' folder.")
-    print("You can open 'public/index.html' in your browser to view it.")
+    print(f"You can open '{public_dir}/index.html' in your browser to view it.")
 
-# --- Updated Feature Function ---
+# --- Article Creation Function (Updated to use CONFIG) ---
 
 def create_article(slug):
     """
     Creates the folder structure and article.md template for a new article,
     then opens the file in the user's defined text editor.
     """
-    target_dir = os.path.join(MD_DIR, slug)
-    target_md_path = os.path.join(target_dir, POST_FILENAME)
-    target_media_dir = os.path.join(target_dir, ASSETS_DIR)
+    md_dir = CONFIG['md_dir']
+    post_filename = CONFIG['post_filename']
+    assets_dir = CONFIG['assets_dir']
 
+    target_dir = os.path.join(md_dir, slug)
+    target_md_path = os.path.join(target_dir, post_filename)
+    target_media_dir = os.path.join(target_dir, assets_dir)
+    
     # 1. Check if the directory already exists
     if os.path.exists(target_dir):
         print(f"🛑 Error: Article directory already exists: '{target_dir}'")
@@ -250,58 +304,59 @@ def create_article(slug):
         title=post_title,
         date=datetime.date.today().isoformat(),
         slug=slug,
-        assets_dir=ASSETS_DIR
+        assets_dir=assets_dir
     )
     with open(target_md_path, 'w', encoding='utf-8') as f:
         f.write(template_content)
-
+        
     print(f"\n🎉 Successfully created new article structure at: '{target_dir}'")
-
+    
     # 3. Determine the editor command
-    # Use the EDITOR env var, defaulting to 'vim' if not set
-    editor_command = os.environ.get('EDITOR', 'vim')
-
+    # Use the EDITOR env var, falling back to config value
+    editor_command = os.environ.get('EDITOR', CONFIG.get('default_editor', 'nano'))
+    
     print(f"🖋️ Opening article in your editor ({editor_command}). Save and close the file to return to the prompt...")
 
     # 4. Launch the editor and wait for it to close
     try:
-        # subprocess.call blocks the script until the process (editor) returns
         subprocess.call([editor_command, target_md_path])
-
+        
         print("\n✅ Editor closed. Your content is saved!")
 
     except FileNotFoundError:
         print(f"\n🛑 Error: Editor command '{editor_command}' not found.")
-        print("Please ensure the command is in your system's PATH or set the EDITOR environment variable correctly.")
-
+        print("Please ensure the command is in your system's PATH or set the EDITOR environment variable/config file correctly.")
+        
     print("\nNext step: Run 'python pysite.py build' to generate the site with your new article.")
 
 
-# --- CLI Setup (Unchanged) ---
+# --- CLI Setup ---
 
 def cli():
     """
     Sets up the command-line interface for the pysite script.
     """
+    # Load configuration FIRST
+    load_config() 
+    
     parser = argparse.ArgumentParser(
         description="pysite: A simple Python static site generator.",
         epilog="Use 'python pysite.py build' to generate the site, or 'python pysite.py new <slug>' to create a new article."
     )
-
+    
     subparsers = parser.add_subparsers(dest='command', required=True)
-
+    
     # 'build' command
-    build_parser = subparsers.add_parser('build', help='Generates the static site from the "md" directory into the "public" directory.')
+    build_parser = subparsers.add_parser('build', help='Generates the static site from the content directory into the public directory.')
     build_parser.set_defaults(func=generate_site)
-
+    
     # 'new' command
     new_parser = subparsers.add_parser('new', help='Creates the folder structure and article template for a new article.')
     new_parser.add_argument('slug', type=str, help='The URL-friendly slug (e.g., "my-first-post"). This will be the folder name.')
-    # The lambda function is updated to use the modified create_article signature
     new_parser.set_defaults(func=lambda args: create_article(args.slug))
 
     args = parser.parse_args()
-
+    
     if hasattr(args, 'func'):
         args.func(args) if args.command == 'new' else args.func()
     else:

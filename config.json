@@ -1,0 +1,8 @@
+{
+    "site_title": "My Awesome Static Site",
+    "md_dir": "md",
+    "public_dir": "public",
+    "post_filename": "article.md",
+    "assets_dir": "media",
+    "default_editor": "vim"
+}
