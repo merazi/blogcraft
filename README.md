@@ -31,13 +31,18 @@ All key settings for **pysite** are managed in the `config.json` file. You can c
 
 ```json
 {
-    "site_title": "My Personal Blog",
+    "site_title": "Merazi's blog",
     "md_dir": "md",
     "public_dir": "public",
-    "post_filename": "post.md",
+    "post_filename": "index.md",
     "assets_dir": "files",
-    "default_editor": "nano"
+    "default_editor": "vim",
+    "socials": {
+        "GitHub": "https://github.com/merazi",
+        "BlueSky": "https://bsky.app/profile/meraz1.bsky.social"
+    }
 }
+
 ```
 
 ## ✍️ Creating and Managing Content
