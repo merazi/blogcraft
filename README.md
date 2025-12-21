@@ -12,6 +12,7 @@
 * **Editor Integration:** Launches the new article directly in your preferred editor (`$EDITOR` or configured fallback).
 * **Minimal Styling:** Uses [Pico CSS](https://picocss.com/) via CDN for a modern, responsive, and classless design.
 * **Utility Pages:** Generates `index.html` and `404.html`.
+* **Metadata via Frontmatter:** Extracts titles (respecting casing) and dates from a required YAML frontmatter block.
 
 ## ⚙️ Configuration (`config.json`)
 
@@ -37,3 +38,38 @@ All key settings for **pysite** are managed in the `config.json` file. You can c
     "assets_dir": "files",
     "default_editor": "nano"
 }
+```
+
+## ✍️ Creating and Managing Content
+
+Content is organized into subdirectories within the configured md_dir (default: md/). Each subdirectory represents a single post.
+Article Structure and Frontmatter
+
+Every article file must start with a YAML-like frontmatter block enclosed by ---. This block is used to set the metadata for the post, including the display title and date.
+
+Required Frontmatter Keys:
+
+- title: The exact title used for the index page hyperlink and the browser tab title.
+- date: The date of the post, displayed on the index page (format YYYY-MM-DD).
+
+Example article.md:
+
+```markdown
+---
+title: My First Article with Custom Title Casing
+date: 2025-12-20
+---
+
+# Optional: Main On-Page Heading (This is still good for SEO)
+
+This is the rest of the content for your article. Because the title is set in the frontmatter, you can control the text of the main heading independently, or omit it entirely if your Markdown already starts with a list or paragraph.
+
+## Sub-heading
+```
+
+## 💻 Commands
+
+| Command | Description | Example |
+| :--- | :--- | :--- |
+| `build` | Generates the static site from all Markdown content into the `public` directory. | `python pysite.py build` |
+| `new <slug>`| Creates a new content directory and a template `article.md` file (including frontmatter). | `python pysite.py new project-launch` |
