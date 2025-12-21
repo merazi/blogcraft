@@ -6,6 +6,7 @@ import argparse
 import datetime
 import subprocess 
 import json 
+import re 
 
 # --- Configuration Holder ---
 CONFIG = {}
@@ -28,6 +29,33 @@ def load_config(config_file='config.json'):
     except json.JSONDecodeError as e:
         print(f"🛑 Error: Invalid JSON format in '{config_file}'. Details: {e}")
         exit(1)
+
+# --- New Frontmatter Extractor ---
+def extract_frontmatter(md_content):
+    """
+    Extracts key/value pairs from a YAML-like frontmatter block 
+    (bracketed by '---') at the start of the markdown content.
+    Returns a dictionary of frontmatter and the content without frontmatter.
+    """
+    frontmatter = {}
+    content_without_frontmatter = md_content
+    
+    # Regex to find the frontmatter block: '---' ... '---'
+    # NOTE: This assumes the frontmatter is the very first thing in the file.
+    frontmatter_match = re.match(r'---\s*?\n(.*?)\n---\s*?\n?(.*)', md_content, re.DOTALL)
+
+    if frontmatter_match:
+        frontmatter_block = frontmatter_match.group(1).strip()
+        content_without_frontmatter = frontmatter_match.group(2).strip()
+        
+        for line in frontmatter_block.split('\n'):
+            # Split the line by the first colon to separate key and value
+            if ':' in line:
+                key, value = line.split(':', 1)
+                frontmatter[key.strip()] = value.strip()
+    # If no frontmatter is found, all content is returned as content_without_frontmatter
+
+    return frontmatter, content_without_frontmatter
     
 # --- HTML Templates ---
 
@@ -64,7 +92,6 @@ BASE_TEMPLATE = """
 </html>
 """
 
-# MODIFIED: Removed the <header> and <h2>{post_title}</h2> to prevent title duplication
 POST_CONTENT_TEMPLATE = """
 <article>
     {html_content}
@@ -79,10 +106,12 @@ INDEX_CONTENT_TEMPLATE = """
 </ul>
 """
 
+# MODIFIED: Includes frontmatter block
 NEW_ARTICLE_TEMPLATE = """
-# {title}
-
-**Date:** {date}
+---
+title: {title}
+date: {date}
+---
 
 This is the content for your new article, '{slug}'. 
 
@@ -103,15 +132,12 @@ def generate_social_nav_html():
     if 'socials' in CONFIG and isinstance(CONFIG['socials'], dict):
         socials_config = CONFIG['socials']
         
-        # We only print the info message once
         if CONFIG.get('_social_printed', False) is False:
             print("  ℹ️ Adding social media links to navigation.")
             CONFIG['_social_printed'] = True
             
         for social_name, social_url in socials_config.items():
-            # Use the exact key name for the display text
             display_name = social_name 
-            # Generate the list item link with target="_blank"
             social_nav_links += f'<li><a href="{social_url}" target="_blank">{display_name}</a></li>\n'
             
     return social_nav_links
@@ -129,31 +155,35 @@ def clean_public_directory():
 def generate_post_page(md_path, html_target_path):
     """
     Converts a single article.md file to HTML and writes the full page.
+    Returns the post title, URL relative path, and the extracted date.
     """
     post_filename = CONFIG['post_filename']
     site_title = CONFIG['site_title']
 
     try:
-        # 1. Read Markdown content
+        # 1. Read Markdown content (raw)
         with open(md_path, 'r', encoding='utf-8') as f:
-            md_content = f.read()
+            md_content_raw = f.read()
 
-        # 2. Convert Markdown to HTML
-        html_content = markdown.markdown(md_content)
+        # 2. Extract frontmatter and content
+        frontmatter, md_content = extract_frontmatter(md_content_raw)
         
-        import re
-        match = re.search(r'<h1>(.*?)<\/h1>|<h2>(.*?)<\/h2>', html_content, re.IGNORECASE)
-        # Fallback title if no H1/H2 found
+        # Use extracted title, respecting case. Fallback to slug.
         default_title = os.path.basename(os.path.dirname(md_path)).replace('-', ' ').title()
-        post_title = (match.group(1) or match.group(2)) if match else default_title
+        post_title = frontmatter.get('title', default_title)
+        
+        # Use extracted date. Fallback to N/A.
+        post_date = frontmatter.get('date', "N/A")
+        
+        # 3. Convert Markdown content (without frontmatter) to HTML 
+        html_content = markdown.markdown(md_content)
 
-        # 3. Apply post content template
-        # NOTE: We only pass html_content. post_title is now implicit in html_content (from Markdown H1)
+        # 4. Apply post content template
         final_content = POST_CONTENT_TEMPLATE.format(
             html_content=html_content
         )
 
-        # 4. Apply base template
+        # 5. Apply base template
         social_nav_html = generate_social_nav_html() 
         
         full_html = BASE_TEMPLATE.format(
@@ -161,20 +191,20 @@ def generate_post_page(md_path, html_target_path):
             site_title=site_title,
             content=final_content,
             year=datetime.datetime.now().year,
-            social_nav_links=social_nav_html # Pass to the base template
+            social_nav_links=social_nav_html
         )
 
-        # 5. Write to target file
+        # 6. Write to target file
         os.makedirs(os.path.dirname(html_target_path), exist_ok=True)
         with open(html_target_path, 'w', encoding='utf-8') as f:
             f.write(full_html)
             
         print(f"  ✅ Generated post: {os.path.relpath(html_target_path, CONFIG['public_dir'])}")
-        return post_title, os.path.relpath(html_target_path, CONFIG['public_dir'])
+        return post_title, os.path.relpath(html_target_path, CONFIG['public_dir']), post_date
 
     except Exception as e:
         print(f"  ❌ Error processing {md_path}: {e}")
-        return None, None
+        return None, None, None
 
 def copy_assets(source_dir, target_dir):
     """
@@ -202,20 +232,27 @@ def copy_assets(source_dir, target_dir):
 
 def generate_index_page(post_links):
     """
-    Creates the index.html page with a list of links to all posts.
+    Creates the index.html page with a list of links to all posts, including the styled date.
     """
     site_title = CONFIG['site_title']
     public_dir = CONFIG['public_dir']
 
     print("\nGenerating index.html...")
     list_items = ""
-    for title, url in post_links:
-        list_items += f'<li><a href="/{url}">{title}</a></li>\n'
+    # Unpack the tuple to get title, url, and date
+    for title, url, date in post_links:
+        # Date is outside the <a> tag and dimmed
+        list_items += (
+            f'<li>'
+            f'<a href="/{url}">{title}</a> '
+            f'<span style="color: var(--pico-muted-color); font-size: 0.9em; margin-left: 0.5rem;">'
+            f'({date})'
+            f'</span>'
+            f'</li>\n'
+        )
 
-    # The content template no longer includes social links
     final_content = INDEX_CONTENT_TEMPLATE.format(post_list=list_items)
 
-    # Get the social links for the navigation
     social_nav_html = generate_social_nav_html()
 
     full_html = BASE_TEMPLATE.format(
@@ -250,7 +287,6 @@ def generate_404_page():
     </article>
     """
     
-    # Get the social links for the navigation
     social_nav_html = generate_social_nav_html()
     
     full_html = BASE_TEMPLATE.format(
@@ -273,7 +309,6 @@ def generate_site():
     public_dir = CONFIG['public_dir']
     post_filename = CONFIG['post_filename']
     
-    # Initialize a flag to ensure the "social links added" message prints only once
     CONFIG['_social_printed'] = False
 
     if not os.path.exists(md_dir):
@@ -286,7 +321,6 @@ def generate_site():
 
     print(f"\n--- Processing '{md_dir}' contents ---")
     
-    # We look for the POST_FILENAME in any subdirectory of MD_DIR
     for md_article_path in glob.glob(os.path.join(md_dir, '**', post_filename), recursive=True):
         
         post_dir = os.path.dirname(md_article_path)
@@ -295,10 +329,10 @@ def generate_site():
         
         print(f"\nProcessing post in: {post_dir}")
         
-        post_title, post_url = generate_post_page(md_article_path, target_html_path)
+        post_title, post_url, post_date = generate_post_page(md_article_path, target_html_path)
         
         if post_title and post_url:
-            all_post_links.append((post_title, post_url))
+            all_post_links.append((post_title, post_url, post_date))
             
             target_post_dir = os.path.dirname(target_html_path)
             copy_assets(post_dir, target_post_dir)
@@ -347,7 +381,6 @@ def create_article(slug):
     print(f"\n🎉 Successfully created new article structure at: '{target_dir}'")
     
     # 3. Determine the editor command
-    # Use the EDITOR env var, falling back to config value
     editor_command = os.environ.get('EDITOR', CONFIG.get('default_editor', 'nano'))
     
     print(f"🖋️ Opening article in your editor ({editor_command}). Save and close the file to return to the prompt...")
