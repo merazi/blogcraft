@@ -5,7 +5,7 @@ import glob
 import argparse
 import datetime
 import subprocess 
-import json # NEW: Import for JSON handling
+import json 
 
 # --- Configuration Holder ---
 CONFIG = {}
@@ -29,8 +29,7 @@ def load_config(config_file='config.json'):
         print(f"🛑 Error: Invalid JSON format in '{config_file}'. Details: {e}")
         exit(1)
     
-# --- HTML Templates (Using CONFIG values) ---
-# NOTE: Templates are unchanged, but placeholders like {site_title} will use CONFIG values now.
+# --- HTML Templates ---
 
 BASE_TEMPLATE = """
 <!doctype html>
@@ -51,6 +50,8 @@ BASE_TEMPLATE = """
             <nav>
                 <ul>
                     <li><a href="/">Home</a></li>
+                    <li style="padding: 0 0.5rem; color: var(--pico-muted-color); border: none;" aria-hidden="true">|</li>
+                    {social_nav_links} 
                 </ul>
             </nav>
         </header>
@@ -63,11 +64,9 @@ BASE_TEMPLATE = """
 </html>
 """
 
+# MODIFIED: Removed the <header> and <h2>{post_title}</h2> to prevent title duplication
 POST_CONTENT_TEMPLATE = """
 <article>
-    <header>
-        <h2>{post_title}</h2>
-    </header>
     {html_content}
     <a href="/" role="button" class="secondary">Back to Home</a>
 </article>
@@ -95,7 +94,28 @@ Start writing your awesome content here! You can include assets in the accompany
 * List item 2
 """
 
-# --- Site Generation Functions (Updated to use CONFIG) ---
+# --- Site Generation Functions ---
+
+def generate_social_nav_html():
+    """Generates the HTML list items for social links, if configured, for the navigation bar."""
+    social_nav_links = ""
+    
+    if 'socials' in CONFIG and isinstance(CONFIG['socials'], dict):
+        socials_config = CONFIG['socials']
+        
+        # We only print the info message once
+        if CONFIG.get('_social_printed', False) is False:
+            print("  ℹ️ Adding social media links to navigation.")
+            CONFIG['_social_printed'] = True
+            
+        for social_name, social_url in socials_config.items():
+            # Use the exact key name for the display text
+            display_name = social_name 
+            # Generate the list item link with target="_blank"
+            social_nav_links += f'<li><a href="{social_url}" target="_blank">{display_name}</a></li>\n'
+            
+    return social_nav_links
+
 
 def clean_public_directory():
     """Removes the public directory and recreates it."""
@@ -128,17 +148,20 @@ def generate_post_page(md_path, html_target_path):
         post_title = (match.group(1) or match.group(2)) if match else default_title
 
         # 3. Apply post content template
+        # NOTE: We only pass html_content. post_title is now implicit in html_content (from Markdown H1)
         final_content = POST_CONTENT_TEMPLATE.format(
-            post_title=post_title,
             html_content=html_content
         )
 
         # 4. Apply base template
+        social_nav_html = generate_social_nav_html() 
+        
         full_html = BASE_TEMPLATE.format(
             title=f"{post_title} | {site_title}",
             site_title=site_title,
             content=final_content,
-            year=datetime.datetime.now().year
+            year=datetime.datetime.now().year,
+            social_nav_links=social_nav_html # Pass to the base template
         )
 
         # 5. Write to target file
@@ -189,13 +212,18 @@ def generate_index_page(post_links):
     for title, url in post_links:
         list_items += f'<li><a href="/{url}">{title}</a></li>\n'
 
+    # The content template no longer includes social links
     final_content = INDEX_CONTENT_TEMPLATE.format(post_list=list_items)
+
+    # Get the social links for the navigation
+    social_nav_html = generate_social_nav_html()
 
     full_html = BASE_TEMPLATE.format(
         title=f"Home | {site_title}",
         site_title=site_title,
         content=final_content,
-        year=datetime.datetime.now().year
+        year=datetime.datetime.now().year,
+        social_nav_links=social_nav_html
     )
 
     index_path = os.path.join(public_dir, 'index.html')
@@ -222,11 +250,15 @@ def generate_404_page():
     </article>
     """
     
+    # Get the social links for the navigation
+    social_nav_html = generate_social_nav_html()
+    
     full_html = BASE_TEMPLATE.format(
         title=f"404 | {site_title}",
         site_title=site_title,
         content=final_content,
-        year=datetime.datetime.now().year
+        year=datetime.datetime.now().year,
+        social_nav_links=social_nav_html
     )
 
     not_found_path = os.path.join(public_dir, '404.html')
@@ -240,6 +272,9 @@ def generate_site():
     md_dir = CONFIG['md_dir']
     public_dir = CONFIG['public_dir']
     post_filename = CONFIG['post_filename']
+    
+    # Initialize a flag to ensure the "social links added" message prints only once
+    CONFIG['_social_printed'] = False
 
     if not os.path.exists(md_dir):
         print(f"🛑 Error: Source directory '{md_dir}' not found. Please create it and add your content.")
