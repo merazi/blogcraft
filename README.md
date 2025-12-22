@@ -32,6 +32,7 @@ All key settings for **blogcraft** are managed in the `config.json` file. You ca
 ```json
 {
     "site_title": "Merazi's blog",
+    "site_subtitle": "My corner of the internet",
     "md_dir": "md",
     "public_dir": "public",
     "post_filename": "index.md",
