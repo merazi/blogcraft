@@ -395,21 +395,21 @@ def create_article(slug):
         print(f"\n🛑 Error: Editor command '{editor_command}' not found.")
         print("Please ensure the command is in your system's PATH or set the EDITOR environment variable/config file correctly.")
         
-    print("\nNext step: Run 'python pysite.py build' to generate the site with your new article.")
+    print("\nNext step: Run 'python blogcraft.py build' to generate the site with your new article.")
 
 
 # --- CLI Setup ---
 
 def cli():
     """
-    Sets up the command-line interface for the pysite script.
+    Sets up the command-line interface for the blogcraft script.
     """
     # Load configuration FIRST
     load_config() 
     
     parser = argparse.ArgumentParser(
-        description="pysite: A simple Python static site generator.",
-        epilog="Use 'python pysite.py build' to generate the site, or 'python pysite.py new <slug>' to create a new article."
+        description="blogcraft: A simple Python static site generator.",
+        epilog="Use 'python blogcraft.py build' to generate the site, or 'python blogcraft.py new <slug>' to create a new article."
     )
     
     subparsers = parser.add_subparsers(dest='command', required=True)

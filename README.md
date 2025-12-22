@@ -1,6 +1,6 @@
-# pysite: A Simple Python Static Site Generator
+# blogcraft: A Simple Python Static Site Generator
 
-**pysite** is a minimal, command-line utility built in Python to convert structured Markdown files into a clean, static HTML website. It includes features for content creation, site generation, and uses the Pico CSS framework for minimal, accessible styling out-of-the-box.
+**blogcraft** is a minimal, command-line utility built in Python to convert structured Markdown files into a clean, static HTML website. It includes features for content creation, site generation, and uses the Pico CSS framework for minimal, accessible styling out-of-the-box.
 
 ## ✨ Features
 
@@ -16,7 +16,7 @@
 
 ## ⚙️ Configuration (`config.json`)
 
-All key settings for **pysite** are managed in the `config.json` file. You can change these values to customize your project structure and default tools.
+All key settings for **blogcraft** are managed in the `config.json` file. You can change these values to customize your project structure and default tools.
 
 | Key | Description | Default Value |
 | :--- | :--- | :--- |
@@ -76,5 +76,5 @@ This is the rest of the content for your article. Because the title is set in th
 
 | Command | Description | Example |
 | :--- | :--- | :--- |
-| `build` | Generates the static site from all Markdown content into the `public` directory. | `python pysite.py build` |
-| `new <slug>`| Creates a new content directory and a template `article.md` file (including frontmatter). | `python pysite.py new project-launch` |
+| `build` | Generates the static site from all Markdown content into the `public` directory. | `python blogcraft.py build` |
+| `new <slug>`| Creates a new content directory and a template `article.md` file (including frontmatter). | `python blogcraft.py new project-launch` |
