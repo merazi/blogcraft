@@ -4,5 +4,6 @@
     "public_dir": "public",
     "post_filename": "article.md",
     "assets_dir": "media",
-    "default_editor": "vim"
+    "default_editor": "vim",
+    "site_subtitle": "My custom subtitle!"
 }

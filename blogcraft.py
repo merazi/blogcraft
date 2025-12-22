@@ -73,7 +73,7 @@ BASE_TEMPLATE = """
         <header>
             <hgroup>
                 <h1><a href="/" style="text-decoration: none; color: inherit;">{site_title}</a></h1>
-                <p>Generated with Python</p>
+                <p>{site_subtitle}</p>
             </hgroup>
             <nav>
                 <ul>
@@ -186,9 +186,12 @@ def generate_post_page(md_path, html_target_path):
         # 5. Apply base template
         social_nav_html = generate_social_nav_html() 
         
+        site_subtitle = CONFIG.get('site_subtitle', 'Generated with Python')
+        
         full_html = BASE_TEMPLATE.format(
             title=f"{post_title} | {site_title}",
             site_title=site_title,
+            site_subtitle=site_subtitle,
             content=final_content,
             year=datetime.datetime.now().year,
             social_nav_links=social_nav_html
@@ -255,9 +258,12 @@ def generate_index_page(post_links):
 
     social_nav_html = generate_social_nav_html()
 
+    site_subtitle = CONFIG.get('site_subtitle', 'Generated with Python')
+
     full_html = BASE_TEMPLATE.format(
         title=f"Home | {site_title}",
         site_title=site_title,
+        site_subtitle=site_subtitle,
         content=final_content,
         year=datetime.datetime.now().year,
         social_nav_links=social_nav_html
@@ -289,9 +295,12 @@ def generate_404_page():
     
     social_nav_html = generate_social_nav_html()
     
+    site_subtitle = CONFIG.get('site_subtitle', 'Generated with Python')
+    
     full_html = BASE_TEMPLATE.format(
         title=f"404 | {site_title}",
         site_title=site_title,
+        site_subtitle=site_subtitle,
         content=final_content,
         year=datetime.datetime.now().year,
         social_nav_links=social_nav_html
