@@ -311,6 +311,20 @@ def generate_404_page():
         
     print(f"  ✅ Generated: {not_found_path}")
 
+def _get_date_for_sorting(date_str):
+    """
+    Helper to convert a date string to a date object for sorting.
+    Handles 'N/A' and invalid formats gracefully.
+    """
+    if not date_str or date_str == "N/A":
+        return datetime.date.min
+    try:
+        return datetime.date.fromisoformat(date_str)
+    except (ValueError, TypeError):
+        # Fallback for invalid date formats
+        print(f"  ⚠️ Warning: Invalid date format '{date_str}'. Post will be sorted as oldest.")
+        return datetime.date.min
+
 def generate_site():
     """Main function to orchestrate the site generation."""
     md_dir = CONFIG['md_dir']
@@ -345,7 +359,8 @@ def generate_site():
             target_post_dir = os.path.dirname(target_html_path)
             copy_assets(post_dir, target_post_dir)
             
-    all_post_links.reverse()
+    # Sort posts by date, newest first.
+    all_post_links.sort(key=lambda p: _get_date_for_sorting(p[2]), reverse=True)
     
     generate_index_page(all_post_links)
     generate_404_page()
