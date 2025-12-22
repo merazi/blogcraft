@@ -107,8 +107,7 @@ INDEX_CONTENT_TEMPLATE = """
 """
 
 # MODIFIED: Includes frontmatter block
-NEW_ARTICLE_TEMPLATE = """
----
+NEW_ARTICLE_TEMPLATE = """---
 title: {title}
 date: {date}
 ---
