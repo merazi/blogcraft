@@ -66,6 +66,7 @@ BASE_TEMPLATE = """
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{title}</title>
+    <link rel="stylesheet" href="/code_highlight.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
 </head>
 <body>
@@ -175,7 +176,11 @@ def generate_post_page(md_path, html_target_path):
         post_date = frontmatter.get('date', "N/A")
         
         # 3. Convert Markdown content (without frontmatter) to HTML 
-        html_content = markdown.markdown(md_content)
+        # FIX: Added 'fenced_code' to ensure line breaks are preserved in triple-backtick blocks.
+        html_content = markdown.markdown(
+            md_content, 
+            extensions=['codehilite', 'fenced_code']
+        )
 
         # 4. Apply post content template
         final_content = POST_CONTENT_TEMPLATE.format(
@@ -231,6 +236,24 @@ def copy_assets(source_dir, target_dir):
         elif os.path.isfile(s):
             shutil.copy2(s, d)
             print(f"  ➡️ Copied file: {item}")
+
+def copy_external_assets(public_dir):
+    """Copies external assets (like global CSS) to the public directory."""
+    
+    # List of files in the root directory to copy to public/
+    files_to_copy = ['code_highlight.css']
+    
+    print("\n--- Copying External Assets ---")
+    for filename in files_to_copy:
+        source_path = os.path.join(os.getcwd(), filename)
+        target_path = os.path.join(public_dir, filename)
+        
+        if os.path.exists(source_path):
+            shutil.copy2(source_path, target_path)
+            print(f"  ➡️ Copied global asset: {filename}")
+        else:
+            print(f"  ⚠️ Warning: External asset '{filename}' not found. Please create it in the project root.")
+
 
 def generate_index_page(post_links):
     """
@@ -338,6 +361,9 @@ def generate_site():
         return
 
     clean_public_directory()
+    
+    # NEW: Copy global assets like CSS file
+    copy_external_assets(public_dir)
 
     all_post_links = []
 
