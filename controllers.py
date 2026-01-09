@@ -3,6 +3,7 @@ import glob
 import os
 import shutil
 import subprocess
+import sys
 
 from models import ConfigModel, PostModel
 from views import BlogView, Templates
@@ -23,17 +24,16 @@ class BlogController:
             print(f"🛑 Error: Source directory '{md_dir}' not found.")
             return
 
+        print("🔨 Building site...")
         self._clean_public()
         self._copy_external_assets()
 
         posts_data = []  # List of (PostModel, url)
 
-        print(f"\n--- Processing '{md_dir}' contents ---")
         search_path = os.path.join(md_dir, '**', post_filename)
 
         for md_path in glob.glob(search_path, recursive=True):
             post_dir = os.path.dirname(md_path)
-            print(f"\nProcessing post in: {post_dir}")
 
             try:
                 post = PostModel(md_path)
@@ -50,7 +50,7 @@ class BlogController:
                 with open(target_html_path, 'w', encoding='utf-8') as f:
                     f.write(html)
                 
-                print(f"  ✅ Generated post: {os.path.relpath(target_html_path, public_dir)}")
+                print(f"  ✅ Post: {post.title}")
                 
                 # Copy assets
                 self._copy_post_assets(post_dir, os.path.dirname(target_html_path))
@@ -63,22 +63,20 @@ class BlogController:
                 print(f"  ❌ Error processing {md_path}: {e}")
 
         # Generate Index
-        print("\nGenerating index.html...")
         posts_data.sort(key=lambda x: x[0].date_str or "", reverse=True)
         index_html = self.view.render_index(posts_data)
         with open(os.path.join(public_dir, 'index.html'), 'w', encoding='utf-8') as f:
             f.write(index_html)
-        print(f"  ✅ Generated: {os.path.join(public_dir, 'index.html')}")
+        print("  ✅ Index")
 
         # Generate 404
-        print("Generating 404.html...")
         not_found_html = self.view.render_404()
         with open(os.path.join(public_dir, '404.html'), 'w', encoding='utf-8') as f:
             f.write(not_found_html)
-        print(f"  ✅ Generated: {os.path.join(public_dir, '404.html')}")
+        print("  ✅ 404 Page")
 
-        print("\n✨ Site generation complete! Your static site is in the 'public' folder.")
-        print(f"You can open '{public_dir}/index.html' in your browser to view it.")
+        print(f"\n✨ Site generation complete! ({len(posts_data)} posts)")
+        print(f"   Output: {public_dir}/")
 
     def new_article(self, slug):
         md_dir = self.config['md_dir']
@@ -120,22 +118,32 @@ class BlogController:
 
     def _clean_public(self):
         public_dir = self.config['public_dir']
-        print(f"Cleaning existing '{public_dir}' directory...")
         if os.path.exists(public_dir):
             shutil.rmtree(public_dir)
         os.makedirs(public_dir, exist_ok=True)
-        print("Done cleaning.")
 
     def _copy_external_assets(self):
         public_dir = self.config['public_dir']
         files_to_copy = ['code_highlight.css', 'style.css']
-        print("\n--- Copying External Assets ---")
+        
+        # Determine the application base path (where the script/exe lives)
+        if getattr(sys, 'frozen', False):
+            app_base = sys._MEIPASS
+        else:
+            app_base = os.path.dirname(os.path.abspath(__file__))
+
         for filename in files_to_copy:
-            source_path = os.path.join(os.getcwd(), filename)
+            # 1. Check User's CWD (Override)
+            cwd_path = os.path.join(os.getcwd(), filename)
+            # 2. Check App Bundle/Source (Default)
+            app_path = os.path.join(app_base, filename)
+            
             target_path = os.path.join(public_dir, filename)
-            if os.path.exists(source_path):
-                shutil.copy2(source_path, target_path)
-                print(f"  ➡️ Copied global asset: {filename}")
+            
+            if os.path.exists(cwd_path):
+                shutil.copy2(cwd_path, target_path)
+            elif os.path.exists(app_path):
+                shutil.copy2(app_path, target_path)
             else:
                 print(f"  ⚠️ Warning: External asset '{filename}' not found.")
 
@@ -150,7 +158,5 @@ class BlogController:
                 if os.path.exists(d):
                     shutil.rmtree(d)
                 shutil.copytree(s, d)
-                print(f"  ➡️ Copied assets folder: {os.path.basename(s)}")
             elif os.path.isfile(s):
                 shutil.copy2(s, d)
-                print(f"  ➡️ Copied file: {item}")

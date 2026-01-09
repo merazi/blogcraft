@@ -78,15 +78,11 @@ class BlogView:
     """Handles HTML generation (View)."""
     def __init__(self, config):
         self.config = config
-        self._social_printed = False
 
     def _generate_social_nav(self):
         social_nav_links = ""
         socials = self.config.get('socials')
         if socials and isinstance(socials, dict):
-            if not self._social_printed:
-                print("  ℹ️ Adding social media links to navigation.")
-                self._social_printed = True
             for name, url in socials.items():
                 social_nav_links += f'<li><a href="{url}" target="_blank">{name}</a></li>\n'
         return social_nav_links
