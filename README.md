@@ -1,49 +1,74 @@
-# blogcraft: A Simple Python Static Site Generator
+# blogcraft
 
-**blogcraft** is a minimal, command-line utility built in Python to convert structured Markdown files into a clean, static HTML website. It includes features for content creation, site generation, and uses a custom lightweight CSS for minimal, accessible styling out-of-the-box.
+**blogcraft** is a minimal, command-line static site generator written in Python. It converts Markdown files into a static HTML website with built-in syntax highlighting and responsive styling.
 
-## ✨ Features
+## Installation
 
-* **Configuration File:** Uses `config.json` for easy customization of site title, directory names, and default editor.
-* **Markdown to HTML Conversion:** Converts `article.md` files into `index.html` pages.
-* **Structured Content:** Respects the directory structure inside the configured content folder (default: `md/`).
-* **Asset Handling:** Automatically copies asset directories (images, videos, etc.) to the output structure.
-* **Single-File Command:** Includes a `new` command for fast article creation.
-* **Editor Integration:** Launches the new article directly in your preferred editor (`$EDITOR` or configured fallback).
-* **Minimal Styling:** Uses a custom, lightweight CSS stylesheet for a clean, responsive design without external dependencies.
-* **Utility Pages:** Generates `index.html` and `404.html`.
-* **Metadata via Frontmatter:** Extracts titles (respecting casing) and dates from a required YAML frontmatter block.
+### Prerequisites
 
-## ⚙️ Configuration (`config.json`)
+*   Python 3.x
+*   pip
 
-All key settings for **blogcraft** are managed in the `config.json` file. You can change these values to customize your project structure and default tools.
+### Setup
 
-| Key | Description | Default Value |
-| :--- | :--- | :--- |
-| `site_title` | The main title used in the header and page titles. | `"My Awesome Static Site"` |
-| `md_dir` | The source directory where your Markdown files are stored. | `"md"` |
-| `public_dir` | The destination directory for the generated static website. | `"public"` |
-| `post_filename`| The required filename for each article's main content. | `"article.md"` |
-| `assets_dir` | The name of the subdirectory within each post folder used for media/assets. | `"media"` |
-| `default_editor` | The fallback text editor command if the `$EDITOR` environment variable is not set. | `"vim"` |
+1.  Set up the environment:
 
-**Example `config.json`:**
+    ```bash
+    python3 -m venv .venv
+    source .venv/bin/activate  # Windows: .venv\Scripts\activate
+    pip install -r requirements.txt
+    ```
+
+### Compilation (Optional)
+
+To build a standalone executable:
+
+```bash
+python make_exe.py
+```
+
+The binary is output to `dist/`.
+
+## Usage
+
+### Creating Content
+
+Initialize a new article structure:
+
+```bash
+python blogcraft.py new my-post-slug
+```
+
+This creates a directory in `md/` with a template `article.md`. Edit the file to add your content. Frontmatter metadata (`title`, `date`) is required.
+
+### Building the Site
+
+Generate the static HTML files:
+
+```bash
+python blogcraft.py build
+```
+
+Output files are located in the `public/` directory.
+
+## Configuration
+
+Configuration is managed via `config.json` in the project root.
+
+**Example:**
 
 ```json
 {
-    "site_title": "Merazi's blog",
-    "site_subtitle": "My corner of the internet",
+    "site_title": "My Blog",
     "md_dir": "md",
     "public_dir": "public",
-    "post_filename": "index.md",
-    "assets_dir": "files",
+    "post_filename": "article.md",
+    "assets_dir": "media",
     "default_editor": "vim",
     "socials": {
-        "GitHub": "https://github.com/merazi",
-        "BlueSky": "https://bsky.app/profile/meraz1.bsky.social"
+        "GitHub": "https://github.com/user"
     }
 }
-
 ```
 
 ## ✍️ Creating and Managing Content
