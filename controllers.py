@@ -64,7 +64,7 @@ class BlogController:
 
         # Generate Index
         print("\nGenerating index.html...")
-        posts_data.sort(key=lambda x: x[0].date_obj, reverse=True)
+        posts_data.sort(key=lambda x: x[0].date_str or "", reverse=True)
         index_html = self.view.render_index(posts_data)
         with open(os.path.join(public_dir, 'index.html'), 'w', encoding='utf-8') as f:
             f.write(index_html)
@@ -98,7 +98,7 @@ class BlogController:
         post_title = slug.replace('-', ' ').title()
         template_content = Templates.NEW_ARTICLE.format(
             title=post_title,
-            date=datetime.date.today().isoformat(),
+            date=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             slug=slug,
             assets_dir=assets_dir
         )

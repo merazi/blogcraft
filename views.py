@@ -109,11 +109,14 @@ class BlogView:
     def render_index(self, posts):
         list_items = ""
         for post, url in posts:
+            date_display = post.date_str
+            if date_display:
+                date_display = date_display.split(' ')[0].split('T')[0]
             list_items += (
                 f'<li>'
                 f'<a href="/{url}">{post.title}</a> '
                 f'<span class="post-date">'
-                f'({post.date_str})'
+                f'({date_display})'
                 f'</span>'
                 f'</li>\n'
             )
