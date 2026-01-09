@@ -1,15 +1,20 @@
-import os
-import shutil
-import markdown
-import glob
 import argparse
 import datetime
-import subprocess 
-import json 
-import re 
+import glob
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+
+import markdown
+
 # --- Templates ---
 
+
 class Templates:
+    """HTML templates for the blog."""
     BASE = """
 <!doctype html>
 <html lang="en">
@@ -31,7 +36,7 @@ class Templates:
                 <ul>
                     <li><a href="/">Home</a></li>
                     <li style="padding: 0 0.5rem; color: var(--pico-muted-color); border: none;" aria-hidden="true">|</li>
-                    {social_nav_links} 
+                    {social_nav_links}
                 </ul>
             </nav>
         </header>
@@ -63,7 +68,7 @@ title: {title}
 date: {date}
 ---
 
-This is the content for your new article, '{slug}'. 
+This is the content for your new article, '{slug}'.
 
 Start writing your awesome content here! You can include assets in the accompanying `{assets_dir}` folder.
 
@@ -73,7 +78,9 @@ Start writing your awesome content here! You can include assets in the accompany
 * List item 2
 """
 
+
 # --- MVC Classes ---
+
 
 class ConfigModel:
     """Manages configuration data."""
@@ -89,16 +96,17 @@ class ConfigModel:
         except FileNotFoundError:
             print(f"🛑 Error: Configuration file '{config_file}' not found.")
             print("Please create a 'config.json' file in the project root.")
-            exit(1)
+            sys.exit(1)
         except json.JSONDecodeError as e:
             print(f"🛑 Error: Invalid JSON format in '{config_file}'. Details: {e}")
-            exit(1)
+            sys.exit(1)
 
     def get(self, key, default=None):
         return self.settings.get(key, default)
 
     def __getitem__(self, key):
         return self.settings[key]
+
 
 class PostModel:
     """Represents a single blog post (Model)."""
@@ -112,7 +120,7 @@ class PostModel:
     def _parse(self):
         with open(self.file_path, 'r', encoding='utf-8') as f:
             raw_content = f.read()
-        
+
         # Frontmatter extraction
         frontmatter_match = re.match(r'---\s*?\n(.*?)\n---\s*?\n?(.*)', raw_content, re.DOTALL)
         if frontmatter_match:
@@ -127,7 +135,7 @@ class PostModel:
 
         # Markdown conversion
         self.html_content = markdown.markdown(
-            self.content, 
+            self.content,
             extensions=['codehilite', 'fenced_code']
         )
 
@@ -149,6 +157,7 @@ class PostModel:
             return datetime.date.fromisoformat(date_str)
         except (ValueError, TypeError):
             return datetime.date.min
+
 
 class BlogView:
     """Handles HTML generation (View)."""
@@ -210,6 +219,7 @@ class BlogView:
         title = f"404 | {self.config['site_title']}"
         return self._wrap_base(title, content)
 
+
 class BlogController:
     """Orchestrates the site generation (Controller)."""
     def __init__(self):
@@ -228,11 +238,11 @@ class BlogController:
         self._clean_public()
         self._copy_external_assets()
 
-        posts_data = [] # List of (PostModel, url)
+        posts_data = []  # List of (PostModel, url)
 
         print(f"\n--- Processing '{md_dir}' contents ---")
         search_path = os.path.join(md_dir, '**', post_filename)
-        
+
         for md_path in glob.glob(search_path, recursive=True):
             post_dir = os.path.dirname(md_path)
             print(f"\nProcessing post in: {post_dir}")
@@ -290,7 +300,7 @@ class BlogController:
         target_dir = os.path.join(md_dir, slug)
         target_md_path = os.path.join(target_dir, post_filename)
         target_media_dir = os.path.join(target_dir, assets_dir)
-        
+
         if os.path.exists(target_dir):
             print(f"🛑 Error: Article directory already exists: '{target_dir}'")
             return
@@ -306,9 +316,9 @@ class BlogController:
         )
         with open(target_md_path, 'w', encoding='utf-8') as f:
             f.write(template_content)
-            
+
         print(f"\n🎉 Successfully created new article structure at: '{target_dir}'")
-        
+
         editor_command = os.environ.get('EDITOR', self.config.get('default_editor', 'nano'))
         print(f"🖋️ Opening article in your editor ({editor_command})...")
 
@@ -317,7 +327,7 @@ class BlogController:
             print("\n✅ Editor closed. Your content is saved!")
         except FileNotFoundError:
             print(f"\n🛑 Error: Editor command '{editor_command}' not found.")
-            
+
         print("\nNext step: Run 'python blogcraft.py build' to generate the site.")
 
     def _clean_public(self):
@@ -357,24 +367,36 @@ class BlogController:
                 shutil.copy2(s, d)
                 print(f"  ➡️ Copied file: {item}")
 
+
 # --- CLI Setup ---
 
 def cli():
     """Sets up the command-line interface."""
     parser = argparse.ArgumentParser(
         description="blogcraft: A simple Python static site generator.",
-        epilog="Use 'python blogcraft.py build' to generate the site, or 'python blogcraft.py new <slug>' to create a new article."
+        epilog="Use 'python blogcraft.py build' to generate the site, "
+               "or 'python blogcraft.py new <slug>' to create a new article."
     )
-    
+
     subparsers = parser.add_subparsers(dest='command', required=True)
-    
-    build_parser = subparsers.add_parser('build', help='Generates the static site from the content directory into the public directory.')
-    
-    new_parser = subparsers.add_parser('new', help='Creates the folder structure and article template for a new article.')
-    new_parser.add_argument('slug', type=str, help='The URL-friendly slug (e.g., "my-first-post"). This will be the folder name.')
+
+    subparsers.add_parser(
+        'build',
+        help='Generates the static site from the content directory into the public directory.'
+    )
+
+    new_parser = subparsers.add_parser(
+        'new',
+        help='Creates the folder structure and article template for a new article.'
+    )
+    new_parser.add_argument(
+        'slug',
+        type=str,
+        help='The URL-friendly slug (e.g., "my-first-post"). This will be the folder name.'
+    )
 
     args = parser.parse_args()
-    
+
     controller = BlogController()
 
     if args.command == 'build':
