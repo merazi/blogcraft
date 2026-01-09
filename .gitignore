@@ -24,3 +24,7 @@ htmlcov/
 # Editor/OS Specific Files (Optional but Recommended)
 *~ # Emacs backup files
 .vscode/
+
+# Test files
+public/
+md/
