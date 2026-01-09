@@ -1,2 +1,2 @@
-markdown
-pyinstaller
+Markdown
+Pygments
