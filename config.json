@@ -1,9 +1,12 @@
 {
-    "site_title": "My Awesome Static Site",
+    "site_title": "Your blog title",
+    "site_subtitle": "Your blog subtitle",
     "md_dir": "md",
     "public_dir": "public",
-    "post_filename": "article.md",
-    "assets_dir": "media",
+    "post_filename": "post.md",
+    "assets_dir": "files",
     "default_editor": "vim",
-    "site_subtitle": "My custom subtitle!"
+    "socials": {
+	"Created by": "merazi.github.io"
+    }
 }
