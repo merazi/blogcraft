@@ -128,7 +128,7 @@ class BlogController:
 
     def _copy_external_assets(self):
         public_dir = self.config['public_dir']
-        files_to_copy = ['code_highlight.css']
+        files_to_copy = ['code_highlight.css', 'style.css']
         print("\n--- Copying External Assets ---")
         for filename in files_to_copy:
             source_path = os.path.join(os.getcwd(), filename)

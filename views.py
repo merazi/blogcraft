@@ -11,19 +11,19 @@ class Templates:
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{title}</title>
     <link rel="stylesheet" href="/code_highlight.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+    <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
     <main class="container">
         <header>
             <hgroup>
-                <h1><a href="/" style="text-decoration: none; color: inherit;">{site_title}</a></h1>
+                <h1><a href="/" class="site-title">{site_title}</a></h1>
                 <p>{site_subtitle}</p>
             </hgroup>
             <nav>
                 <ul>
                     <li><a href="/">Home</a></li>
-                    <li style="padding: 0 0.5rem; color: var(--pico-muted-color); border: none;" aria-hidden="true">|</li>
+                    <li class="separator" aria-hidden="true">|</li>
                     {social_nav_links}
                 </ul>
             </nav>
@@ -64,6 +64,13 @@ Start writing your awesome content here! You can include assets in the accompany
 
 * List item 1
 * List item 2
+
+## Code Block Example
+
+```python
+def hello():
+    print("Hello, world!")
+```
 """
 
 
@@ -105,7 +112,7 @@ class BlogView:
             list_items += (
                 f'<li>'
                 f'<a href="/{url}">{post.title}</a> '
-                f'<span style="color: var(--pico-muted-color); font-size: 0.9em; margin-left: 0.5rem;">'
+                f'<span class="post-date">'
                 f'({post.date_str})'
                 f'</span>'
                 f'</li>\n'

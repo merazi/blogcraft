@@ -1,6 +1,6 @@
 # blogcraft: A Simple Python Static Site Generator
 
-**blogcraft** is a minimal, command-line utility built in Python to convert structured Markdown files into a clean, static HTML website. It includes features for content creation, site generation, and uses the Pico CSS framework for minimal, accessible styling out-of-the-box.
+**blogcraft** is a minimal, command-line utility built in Python to convert structured Markdown files into a clean, static HTML website. It includes features for content creation, site generation, and uses a custom lightweight CSS for minimal, accessible styling out-of-the-box.
 
 ## ✨ Features
 
@@ -10,7 +10,7 @@
 * **Asset Handling:** Automatically copies asset directories (images, videos, etc.) to the output structure.
 * **Single-File Command:** Includes a `new` command for fast article creation.
 * **Editor Integration:** Launches the new article directly in your preferred editor (`$EDITOR` or configured fallback).
-* **Minimal Styling:** Uses [Pico CSS](https://picocss.com/) via CDN for a modern, responsive, and classless design.
+* **Minimal Styling:** Uses a custom, lightweight CSS stylesheet for a clean, responsive design without external dependencies.
 * **Utility Pages:** Generates `index.html` and `404.html`.
 * **Metadata via Frontmatter:** Extracts titles (respecting casing) and dates from a required YAML frontmatter block.
 
