@@ -1,30 +1,47 @@
 import argparse
+import textwrap
 
 from controllers import BlogController
 
 def cli():
     """Sets up the command-line interface."""
     parser = argparse.ArgumentParser(
-        description="blogcraft: A simple Python static site generator.",
-        epilog="Use 'python blogcraft.py build' to generate the site, "
-               "or 'python blogcraft.py new <slug>' to create a new article."
+        prog="blogcraft",
+        description=textwrap.dedent("""\
+            blogcraft - A minimal static site generator.
+
+            Transforms Markdown files into a static HTML website with:
+              - Syntax highlighting
+              - RSS feed generation
+              - Responsive styling
+            """),
+        epilog=textwrap.dedent("""\
+            examples:
+              $ python blogcraft.py new my-awesome-feature
+              $ python blogcraft.py build
+
+            See config.json for site configuration.
+            """),
+        formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
-    subparsers = parser.add_subparsers(dest='command', required=True)
+    subparsers = parser.add_subparsers(dest='command', required=True, title="commands")
 
     subparsers.add_parser(
         'build',
-        help='Generates the static site from the content directory into the public directory.'
+        help='Compile the static website from Markdown content.',
+        description='Generates the static site. Cleans the public directory, copies assets, and renders Markdown to HTML.'
     )
 
     new_parser = subparsers.add_parser(
         'new',
-        help='Creates the folder structure and article template for a new article.'
+        help='Create a new article template.',
+        description='Creates a new content directory with a template article.md file.'
     )
     new_parser.add_argument(
         'slug',
         type=str,
-        help='The URL-friendly slug (e.g., "my-first-post"). This will be the folder name.'
+        help='The URL-friendly identifier for the post (e.g., "hello-world"). Used as the folder name.'
     )
 
     args = parser.parse_args()
