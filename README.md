@@ -1,17 +1,20 @@
 # blogcraft
 
-**blogcraft** is a minimal, command-line static site generator written in Python. It converts Markdown files into a static HTML website with built-in syntax highlighting and responsive styling.
+<p align="center">
+  <img height="64px" src="blogcraft-icon.png" alt="blogcraft icon">
+ <strong>blogcraft</strong> is a minimal, command-line static site generator written in Python. It converts Markdown files into a static HTML website with built-in syntax highlighting and responsive styling.
+</p>
 
 ## Installation
 
 ### Prerequisites
 
-*   Python 3.x
-*   pip
+* Python 3.x
+* pip
 
 ### Setup
 
-1.  Set up the environment:
+1. Set up the environment:
 
     ```bash
     python3 -m venv .venv
@@ -59,18 +62,22 @@ Configuration is managed via `config.json` in the project root.
 
 ```json
 {
-    "site_title": "My Blog",
-    "site_url": "https://example.com",
+    "site_title": "Your blog title",
+    "site_url": "http://localhost:8800",
+    "site_subtitle": "Your blog subtitle",
     "rss": true,
     "md_dir": "md",
+    "rss": "true",
     "public_dir": "public",
-    "post_filename": "article.md",
-    "assets_dir": "media",
+    "post_filename": "post.md",
+    "assets_dir": "files",
     "default_editor": "vim",
     "socials": {
-        "GitHub": "https://github.com/user"
+        "Merazi": "https://merazi.github.io",
+        "Google": "https://google.com"
     }
 }
+
 ```
 
 ## ✍️ Creating and Managing Content
@@ -82,8 +89,8 @@ Every article file must start with a YAML-like frontmatter block enclosed by ---
 
 Required Frontmatter Keys:
 
-- title: The exact title used for the index page hyperlink and the browser tab title.
-- date: The date of the post, displayed on the index page (format YYYY-MM-DD).
+* title: The exact title used for the index page hyperlink and the browser tab title.
+* date: The date of the post, displayed on the index page (format YYYY-MM-DD).
 
 Example article.md:
 
