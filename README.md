@@ -1,9 +1,14 @@
-# blogcraft
+<div align="center">
+  <img src="blogcraft-icon.png" alt="blogcraft icon" width="128">
 
-<p align="center">
-  <img height="64px" src="blogcraft-icon.png" alt="blogcraft icon">
- <strong>blogcraft</strong> is a minimal, command-line static site generator written in Python. It converts Markdown files into a static HTML website with built-in syntax highlighting and responsive styling.
-</p>
+  # blogcraft
+
+  **A minimal, command-line static site generator written in Python.**
+
+  Converts Markdown files into a static HTML website with built-in syntax highlighting, responsive styling, and RSS feed generation.
+
+  [![Python](https://img.shields.io/badge/Python-3.x-blue.svg)](https://www.python.org/)
+</div>
 
 ## Installation
 
@@ -54,6 +59,8 @@ python blogcraft.py build
 
 Output files are located in the `public/` directory.
 
+If `rss` is enabled in your configuration, an RSS feed will be generated at `public/feed.xml`.
+
 ## Configuration
 
 Configuration is managed via `config.json` in the project root.
@@ -67,7 +74,6 @@ Configuration is managed via `config.json` in the project root.
     "site_subtitle": "Your blog subtitle",
     "rss": true,
     "md_dir": "md",
-    "rss": "true",
     "public_dir": "public",
     "post_filename": "post.md",
     "assets_dir": "files",
