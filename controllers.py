@@ -40,7 +40,7 @@ class BlogController:
                 
                 # Determine output path
                 rel_post_dir = os.path.relpath(post_dir, md_dir)
-                target_html_path = os.path.join(public_dir, rel_post_dir, 'index.html')
+                target_html_path = os.path.join(public_dir, 'posts', rel_post_dir, 'index.html')
                 
                 # Render
                 html = self.view.render_post(post)
