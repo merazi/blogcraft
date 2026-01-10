@@ -45,7 +45,7 @@ class Templates:
 """
 
     INDEX_CONTENT = """
-<h2>Latest Posts</h2>
+<h2>Latest Posts {rss_link}</h2>
 <ul role="list">
 {post_list}
 </ul>
@@ -116,7 +116,12 @@ class BlogView:
                 f'</span>'
                 f'</li>\n'
             )
-        content = Templates.INDEX_CONTENT.format(post_list=list_items)
+
+        rss_link = ""
+        if self.config.get('rss'):
+            rss_link = ' <a href="/feed.xml" style="font-size: 0.5em; vertical-align: middle; text-decoration: none;">RSS</a>'
+
+        content = Templates.INDEX_CONTENT.format(post_list=list_items, rss_link=rss_link)
         title = f"Home | {self.config['site_title']}"
         return self._wrap_base(title, content)
 

@@ -1,6 +1,8 @@
 {
     "site_title": "Your blog title",
+    "site_url": "http://localhost:8800",
     "site_subtitle": "Your blog subtitle",
+    "rss": true,
     "md_dir": "md",
     "public_dir": "public",
     "post_filename": "post.md",

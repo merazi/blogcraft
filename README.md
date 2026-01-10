@@ -60,6 +60,8 @@ Configuration is managed via `config.json` in the project root.
 ```json
 {
     "site_title": "My Blog",
+    "site_url": "https://example.com",
+    "rss": true,
     "md_dir": "md",
     "public_dir": "public",
     "post_filename": "article.md",

@@ -7,6 +7,7 @@ import sys
 
 from models import ConfigModel, PostModel
 from views import BlogView, Templates
+from rss import RSSGenerator
 
 
 class BlogController:
@@ -64,6 +65,22 @@ class BlogController:
 
         # Generate Index
         posts_data.sort(key=lambda x: x[0].date_str or "", reverse=True)
+
+        # Generate RSS
+        rss_items = []
+        for post, url in posts_data:
+            # Normalize path separators and remove index.html for clean URLs
+            slug = url.replace(os.sep, '/')
+            if slug.endswith('index.html'):
+                slug = slug[:-10]
+            rss_items.append({
+                'title': post.title,
+                'date': post.date_str,
+                'slug': slug,
+                'description': getattr(post, 'description', '')
+            })
+        RSSGenerator(self.config).generate(rss_items)
+
         index_html = self.view.render_index(posts_data)
         with open(os.path.join(public_dir, 'index.html'), 'w', encoding='utf-8') as f:
             f.write(index_html)
