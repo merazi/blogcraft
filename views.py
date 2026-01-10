@@ -80,12 +80,12 @@ class BlogView:
         self.config = config
 
     def _generate_social_nav(self):
-        social_nav_links = ""
+        links = []
         socials = self.config.get('socials')
         if socials and isinstance(socials, dict):
             for name, url in socials.items():
-                social_nav_links += f'<li><a href="{url}" target="_blank">{name}</a></li>\n'
-        return social_nav_links
+                links.append(f'<li><a href="{url}" target="_blank">{name}</a></li>')
+        return '\n<li class="separator" aria-hidden="true">-</li>\n'.join(links)
 
     def _wrap_base(self, title, content):
         return Templates.BASE.format(

@@ -7,6 +7,7 @@
     "assets_dir": "files",
     "default_editor": "vim",
     "socials": {
-	"Created by": "https://merazi.github.io"
+	"Created by": "https://merazi.github.io",
+	"Google": "https://google.com"
     }
 }
