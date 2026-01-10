@@ -1,0 +1,42 @@
+.TH BLOGCRAFT 1 "October 2023" "1.0" "User Commands"
+.SH NAME
+blogcraft \- A minimal static site generator
+.SH SYNOPSIS
+.B python blogcraft.py
+[\fIcommand\fR] [\fIoptions\fR]
+.SH DESCRIPTION
+.B blogcraft
+transforms Markdown files into a static HTML website. It features syntax highlighting, RSS feed generation, and responsive styling.
+.PP
+It relies on a \fBconfig.json\fR file for site-wide configuration.
+.SH COMMANDS
+.TP
+.B build
+Compile the static website from Markdown content. This command cleans the public directory, copies assets, and renders Markdown to HTML.
+.TP
+.B new \fIslug\fR
+Create a new article template. Creates a new content directory based on the provided \fIslug\fR with a template \fBarticle.md\fR file.
+.SH OPTIONS
+.TP
+.B \-h, \-\-help
+Show the help message and exit.
+.SH FILES
+.TP
+.I config.json
+The main configuration file for the site settings.
+.SH EXAMPLES
+.B Create a new article:
+.PP
+.RS
+$ python blogcraft.py new my-awesome-feature
+.RE
+.PP
+.B Build the site:
+.PP
+.RS
+$ python blogcraft.py build
+.RE
+.SH AUTHOR
+Maintained by Merazi.
+.SH SEE ALSO
+.BR python (1)
