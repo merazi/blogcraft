@@ -134,6 +134,17 @@ make install  # Installs to ~/.local/bin/
 
 ---
 
+## 🧪 Testing
+
+To run the automated test suite:
+
+```bash
+export PYTHONPATH=$PYTHONPATH:.
+python3 tests/test_blogcraft.py
+```
+
+---
+
 ## 🤝 Contributing
 
 Contributions are welcome! Feel free to open issues or submit pull requests to improve Blogcraft.
