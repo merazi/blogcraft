@@ -1,9 +1,13 @@
 import datetime
 import glob
+import http.server
 import os
 import shutil
+import socketserver
 import subprocess
 import sys
+import time
+import threading
 
 from models import ConfigModel, PostModel
 from views import BlogView, Templates
@@ -15,6 +19,88 @@ class BlogController:
     def __init__(self):
         self.config = ConfigModel()
         self.view = BlogView(self.config)
+
+    def init_project(self):
+        """Interactive initialization of the blog project."""
+        print("🚀 Welcome to Blogcraft! Let's set up your blog.\n")
+        
+        title = input(f"Blog Title [{self.config['site_title']}]: ").strip()
+        if title: self.config['site_title'] = title
+        
+        subtitle = input(f"Blog Subtitle [{self.config['site_subtitle']}]: ").strip()
+        if subtitle: self.config['site_subtitle'] = subtitle
+
+        url = input(f"Site URL [{self.config['site_url']}]: ").strip()
+        if url: self.config['site_url'] = url
+
+        editor = input(f"Default Editor [{self.config['default_editor']}]: ").strip()
+        if editor: self.config['default_editor'] = editor
+
+        self.config.save()
+        
+        # Ensure directories exist
+        os.makedirs(self.config['md_dir'], exist_ok=True)
+        print(f"✅ Created source directory: {self.config['md_dir']}")
+        
+        print("\n✨ Setup complete! You can now create a post with 'python blogcraft.py new my-post'.")
+
+    def serve(self, port=8000, watch=False):
+        """Starts a local preview server."""
+        public_dir = self.config['public_dir']
+        
+        if not os.path.exists(public_dir):
+            print(f"⚠️  Public directory '{public_dir}' not found. Building site first...")
+            self.build()
+
+        os.chdir(public_dir)
+
+        Handler = http.server.SimpleHTTPRequestHandler
+        
+        if watch:
+            print(f"👀 Watch mode enabled. Monitoring '{self.config['md_dir']}' for changes...")
+            # We need to go back to root to watch md_dir
+            root_dir = os.path.abspath(os.path.join(os.getcwd(), '..'))
+            
+            def watch_loop():
+                last_mtime = self._get_max_mtime(os.path.join(root_dir, self.config['md_dir']))
+                while True:
+                    time.sleep(1)
+                    current_mtime = self._get_max_mtime(os.path.join(root_dir, self.config['md_dir']))
+                    if current_mtime > last_mtime:
+                        print("\n🔄 Changes detected! Rebuilding...")
+                        # Run build from root
+                        current_cwd = os.getcwd()
+                        os.chdir(root_dir)
+                        self.build()
+                        os.chdir(current_cwd)
+                        last_mtime = current_mtime
+            
+            watcher = threading.Thread(target=watch_loop, daemon=True)
+            watcher.start()
+
+        print(f"🌐 Serving blog at http://localhost:{port}")
+        print("Press Ctrl+C to stop.")
+        
+        with socketserver.TCPServer(("", port), Handler) as httpd:
+            try:
+                httpd.serve_forever()
+            except KeyboardInterrupt:
+                print("\n🛑 Server stopped.")
+                sys.exit(0)
+
+    def _get_max_mtime(self, directory):
+        """Helper to get the latest modification time in a directory tree."""
+        max_mtime = 0
+        for root, _, files in os.walk(directory):
+            for f in files:
+                path = os.path.join(root, f)
+                try:
+                    mtime = os.path.getmtime(path)
+                    if mtime > max_mtime:
+                        max_mtime = mtime
+                except OSError:
+                    continue
+        return max_mtime
 
     def build(self):
         md_dir = self.config['md_dir']

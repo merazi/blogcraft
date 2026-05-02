@@ -27,17 +27,26 @@
     pip install -r requirements.txt
     ```
 
-### Compilation (Optional)
+### Installation & Build
 
-To build a standalone executable:
+To build and install Blogcraft as a standalone binary on Linux:
 
 ```bash
-python make_exe.py
+make
+make install
 ```
 
-The binary is output to `dist/`.
+The binary will be installed to `~/.local/bin/blogcraft`. Ensure this directory is in your `PATH`.
 
 ## Usage
+
+### Getting Started
+
+If you are new to Blogcraft, run the initialization command to set up your configuration:
+
+```bash
+python blogcraft.py init
+```
 
 ### Creating Content
 
@@ -49,17 +58,20 @@ python blogcraft.py new my-post-slug
 
 This creates a directory in `md/` with a template `article.md`. Edit the file to add your content. Frontmatter metadata (`title`, `date`) is required.
 
-### Building the Site
+### Building and Previewing
 
-Generate the static HTML files:
+Generate the static site and start a local preview server:
 
 ```bash
 python blogcraft.py build
+python blogcraft.py serve
 ```
 
-Output files are located in the `public/` directory.
+Use the `--watch` flag to automatically rebuild the site whenever you make changes to your Markdown files:
 
-If `rss` is enabled in your configuration, an RSS feed will be generated at `public/feed.xml`.
+```bash
+python blogcraft.py serve --watch
+```
 
 ## Configuration
 
@@ -117,5 +129,7 @@ This is the rest of the content for your article. Because the title is set in th
 
 | Command | Description | Example |
 | :--- | :--- | :--- |
+| `init` | Starts an interactive setup to configure your blog. | `python blogcraft.py init` |
 | `build` | Generates the static site from all Markdown content into the `public` directory. | `python blogcraft.py build` |
-| `new <slug>`| Creates a new content directory and a template `article.md` file (including frontmatter). | `python blogcraft.py new project-launch` |
+| `serve` | Starts a local preview server (default: http://localhost:8000). | `python blogcraft.py serve --watch` |
+| `new <slug>`| Creates a new content directory and a template `article.md` file. | `python blogcraft.py new project-launch` |

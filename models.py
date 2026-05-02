@@ -9,28 +9,53 @@ import markdown
 
 class ConfigModel:
     """Manages configuration data."""
+    DEFAULT_SETTINGS = {
+        "site_title": "My Blogcraft Site",
+        "site_url": "http://localhost:8000",
+        "site_subtitle": "Built with Blogcraft",
+        "rss": True,
+        "md_dir": "md",
+        "public_dir": "public",
+        "post_filename": "article.md",
+        "assets_dir": "files",
+        "default_editor": "nano",
+        "socials": {}
+    }
+
     def __init__(self, config_file='config.json'):
-        self.settings = {}
+        self.config_file = config_file
+        self.settings = self.DEFAULT_SETTINGS.copy()
         self._load(config_file)
 
     def _load(self, config_file):
+        if not os.path.exists(config_file):
+            return
+
         try:
             with open(config_file, 'r', encoding='utf-8') as f:
-                self.settings = json.load(f)
+                user_settings = json.load(f)
+                self.settings.update(user_settings)
             print(f"Loaded configuration from {config_file}.")
-        except FileNotFoundError:
-            print(f"🛑 Error: Configuration file '{config_file}' not found.")
-            print("Please create a 'config.json' file in the project root.")
-            sys.exit(1)
         except json.JSONDecodeError as e:
-            print(f"🛑 Error: Invalid JSON format in '{config_file}'. Details: {e}")
-            sys.exit(1)
+            print(f"⚠️ Warning: Invalid JSON format in '{config_file}'. Using defaults. Details: {e}")
+
+    def save(self):
+        """Saves current settings to the config file."""
+        try:
+            with open(self.config_file, 'w', encoding='utf-8') as f:
+                json.dump(self.settings, f, indent=4)
+            print(f"✅ Configuration saved to {self.config_file}")
+        except Exception as e:
+            print(f"🛑 Error saving configuration: {e}")
 
     def get(self, key, default=None):
         return self.settings.get(key, default)
 
     def __getitem__(self, key):
         return self.settings[key]
+
+    def __setitem__(self, key, value):
+        self.settings[key] = value
 
 
 class PostModel:

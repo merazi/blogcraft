@@ -5,7 +5,7 @@
     "rss": true,
     "md_dir": "md",
     "public_dir": "public",
-    "post_filename": "post.md",
+    "post_filename": "article.md",
     "assets_dir": "files",
     "default_editor": "vim",
     "socials": {

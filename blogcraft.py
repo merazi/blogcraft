@@ -28,9 +28,32 @@ def cli():
     subparsers = parser.add_subparsers(dest='command', required=True, title="commands")
 
     subparsers.add_parser(
+        'init',
+        help='Initialize a new blog project.',
+        description='Starts an interactive setup to configure your blog.'
+    )
+
+    subparsers.add_parser(
         'build',
         help='Compile the static website from Markdown content.',
         description='Generates the static site. Cleans the public directory, copies assets, and renders Markdown to HTML.'
+    )
+
+    serve_parser = subparsers.add_parser(
+        'serve',
+        help='Start a local preview server.',
+        description='Hosts your blog locally and optionally watches for changes.'
+    )
+    serve_parser.add_argument(
+        '--port',
+        type=int,
+        default=8000,
+        help='The port to serve on (default: 8000).'
+    )
+    serve_parser.add_argument(
+        '--watch',
+        action='store_true',
+        help='Enable watch mode to automatically rebuild on changes.'
     )
 
     new_parser = subparsers.add_parser(
@@ -52,6 +75,10 @@ def cli():
         controller.build()
     elif args.command == 'new':
         controller.new_article(args.slug)
+    elif args.command == 'init':
+        controller.init_project()
+    elif args.command == 'serve':
+        controller.serve(port=args.port, watch=args.watch)
 
 
 if __name__ == "__main__":
