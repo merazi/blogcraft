@@ -35,3 +35,5 @@ help:
 	@echo "  make install  - Build and install to $(BINDIR)"
 	@echo "  make clean    - Remove build artifacts"
 	@echo "  make help     - Show this help message"
+	@echo ""
+	@echo "Make sure pyinstaller is installed!"
