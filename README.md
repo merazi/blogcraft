@@ -5,131 +5,147 @@
 
   **A minimal, command-line static site generator written in Python.**
 
-  Converts Markdown files into a static HTML website with built-in syntax highlighting, responsive styling, and RSS feed generation.
+  Transform your Markdown files into a polished, responsive static website with built-in syntax highlighting and RSS support.
 
-  [![Python](https://img.shields.io/badge/Python-3.x-blue.svg)](https://www.python.org/)
+  [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+  [![Markdown](https://img.shields.io/badge/markdown-%23000000.svg?style=flat&logo=markdown&logoColor=white)](https://daringfireball.net/projects/markdown/)
+  [![Pygments](https://img.shields.io/badge/syntax--highlighting-Pygments-informational)](https://pygments.org/)
+  [![Built with Python](https://img.shields.io/badge/Built%20with-Python-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 </div>
 
-## Installation
+---
 
-### Prerequisites
+## 🌟 Features
 
-* Python 3.x
+- **🚀 Instant Setup:** Interactive `init` command to get your blog running in seconds.
+- **📝 Markdown Focused:** Write content in clean Markdown with YAML-like frontmatter.
+- **⚡ Fast Generation:** High-performance static site generation.
+- **🎨 Syntax Highlighting:** Beautiful code blocks powered by Pygments.
+- **📱 Responsive Design:** Modern, mobile-friendly CSS included out of the box.
+- **📡 RSS Feed:** Automatic generation of `feed.xml` for your readers.
+- **👀 Live Preview:** Built-in dev server with `--watch` mode for real-time rebuilding.
+- **🛠️ Standalone Binary:** Optional build process to create a single-file executable.
+
+---
+
+## 🚀 Quick Start
+
+### 1. Prerequisites
+* Python 3.8+
 * pip
 
-### Setup
-
-1. Set up the environment:
-
-    ```bash
-    python3 -m venv .venv
-    source .venv/bin/activate  # Windows: .venv\Scripts\activate
-    pip install -r requirements.txt
-    ```
-
-### Installation & Build
-
-To build and install Blogcraft as a standalone binary on Linux:
-
+### 2. Setup Environment
 ```bash
-make
-make install
+python3 -m venv .venv
+source .venv/bin/activate  # Linux/macOS
+# .venv\Scripts\activate   # Windows
+pip install -r requirements.txt
 ```
 
-The binary will be installed to `~/.local/bin/blogcraft`. Ensure this directory is in your `PATH`.
-
-## Usage
-
-### Getting Started
-
-If you are new to Blogcraft, run the initialization command to set up your configuration:
-
+### 3. Initialize & Build
 ```bash
-python blogcraft.py init
+python blogcraft.py init     # Configure your site
+python blogcraft.py build    # Generate HTML
+python blogcraft.py serve    # Preview at http://localhost:8000
 ```
 
-### Creating Content
+---
 
-Initialize a new article structure:
+## 💻 Command Reference
 
-```bash
-python blogcraft.py new my-post-slug
+| Command | Description |
+| :--- | :--- |
+| `init` | Starts an interactive setup to configure your blog metadata. |
+| `new <slug>` | Scaffolds a new post directory and `article.md` template. |
+| `build` | Compiles Markdown to HTML, generates index, RSS, and 404 pages. |
+| `serve` | Starts a local server. Use `--watch` to rebuild on every save. |
+
+---
+
+## 📂 Project Structure
+
+```text
+.
+├── blogcraft.py       # Main CLI entry point
+├── controllers.py     # Logic for building and serving
+├── models.py          # Data models for Config and Posts
+├── views.py           # HTML templates and rendering
+├── config.json        # Your blog's configuration
+├── md/                # Source Markdown files (configurable)
+│   └── hello-world/
+│       ├── article.md
+│       └── files/     # Post-specific assets
+└── public/            # Generated static files (deploy this!)
 ```
 
-This creates a directory in `md/` with a template `article.md`. Edit the file to add your content. Frontmatter metadata (`title`, `date`) is required.
+---
 
-### Building and Previewing
+## ⚙️ Configuration
 
-Generate the static site and start a local preview server:
-
-```bash
-python blogcraft.py build
-python blogcraft.py serve
-```
-
-Use the `--watch` flag to automatically rebuild the site whenever you make changes to your Markdown files:
-
-```bash
-python blogcraft.py serve --watch
-```
-
-## Configuration
-
-Configuration is managed via `config.json` in the project root.
-
-**Example:**
+Settings are managed in `config.json`. Most options can be configured during `init`.
 
 ```json
 {
-    "site_title": "Your blog title",
-    "site_url": "http://localhost:8800",
-    "site_subtitle": "Your blog subtitle",
+    "site_title": "My Blog",
+    "site_url": "https://example.com",
+    "site_subtitle": "Thoughts on code and life",
     "rss": true,
     "md_dir": "md",
     "public_dir": "public",
-    "post_filename": "post.md",
+    "post_filename": "article.md",
     "assets_dir": "files",
     "default_editor": "vim",
     "socials": {
-        "Merazi": "https://merazi.github.io",
-        "Google": "https://google.com"
+        "GitHub": "https://github.com/youruser",
+        "Twitter": "https://twitter.com/youruser"
     }
 }
-
 ```
 
-## ✍️ Creating and Managing Content
+---
 
-Content is organized into subdirectories within the configured md_dir (default: md/). Each subdirectory represents a single post.
-Article Structure and Frontmatter
+## ✍️ Content Creation
 
-Every article file must start with a YAML-like frontmatter block enclosed by ---. This block is used to set the metadata for the post, including the display title and date.
-
-Required Frontmatter Keys:
-
-* title: The exact title used for the index page hyperlink and the browser tab title.
-* date: The date of the post, displayed on the index page (format YYYY-MM-DD).
-
-Example article.md:
+### Frontmatter
+Every article requires a metadata block at the top:
 
 ```markdown
 ---
-title: My First Article with Custom Title Casing
-date: 2025-12-20
+title: My Awesome Post
+date: 2026-05-01
 ---
 
-# Optional: Main On-Page Heading (This is still good for SEO)
-
-This is the rest of the content for your article. Because the title is set in the frontmatter, you can control the text of the main heading independently, or omit it entirely if your Markdown already starts with a list or paragraph.
-
-## Sub-heading
+# Your Content Starts Here
 ```
 
-## 💻 Commands
+### Post Assets
+Store images or files for a specific post in its `files/` (or configured `assets_dir`) subdirectory. Reference them in Markdown using relative paths: `![Alt text](files/image.png)`.
 
-| Command | Description | Example |
-| :--- | :--- | :--- |
-| `init` | Starts an interactive setup to configure your blog. | `python blogcraft.py init` |
-| `build` | Generates the static site from all Markdown content into the `public` directory. | `python blogcraft.py build` |
-| `serve` | Starts a local preview server (default: http://localhost:8000). | `python blogcraft.py serve --watch` |
-| `new <slug>`| Creates a new content directory and a template `article.md` file. | `python blogcraft.py new project-launch` |
+---
+
+## 🛠️ Advanced: Standalone Binary
+
+You can compile Blogcraft into a single binary for easier distribution using the provided `Makefile`:
+
+```bash
+make          # Builds binary in dist/
+make install  # Installs to ~/.local/bin/
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Feel free to open issues or submit pull requests to improve Blogcraft.
+
+---
+
+## 📄 License
+
+This project is licensed under the **GPLv3 License** - see the [LICENSE](LICENSE) file for details.
+
+---
+
+<div align="center">
+  <sub>Built with ❤️ and 🐍 by Merazi.</sub>
+</div>
