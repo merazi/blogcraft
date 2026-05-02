@@ -2,20 +2,24 @@ import os
 import html
 from datetime import datetime
 from email.utils import formatdate
+from typing import List, Dict, Any, Optional
+
+from models import ConfigModel
+
 
 class RSSGenerator:
     """Handles the generation of an RSS feed for the static site."""
 
-    def __init__(self, config):
-        self.config = config
-        self.site_title = config.get('site_title', 'My Blog')
+    def __init__(self, config: ConfigModel):
+        self.config: ConfigModel = config
+        self.site_title: str = config.get('site_title', 'My Blog')
         # RSS requires absolute URLs, default to localhost if not set
-        self.site_url = config.get('site_url', 'http://localhost:8000').rstrip('/')
-        self.description = config.get('site_description', 'Recent content.')
-        self.public_dir = config.get('public_dir', 'public')
-        self.rss_filename = 'feed.xml'
+        self.site_url: str = config.get('site_url', 'http://localhost:8000').rstrip('/')
+        self.description: str = config.get('site_description', 'Recent content.')
+        self.public_dir: str = config.get('public_dir', 'public')
+        self.rss_filename: str = 'feed.xml'
 
-    def generate(self, posts):
+    def generate(self, posts: List[Dict[str, Any]]) -> None:
         """
         Generates the RSS feed if enabled in config.
 
@@ -27,7 +31,7 @@ class RSSGenerator:
 
         print("Generating RSS feed...")
 
-        items = []
+        items: List[str] = []
         # Sort posts by date descending
         sorted_posts = sorted(posts, key=lambda x: x.get('date', ''), reverse=True)
 
@@ -54,7 +58,7 @@ class RSSGenerator:
 
         print(f"RSS feed written to {output_path}")
 
-    def _create_item(self, post):
+    def _create_item(self, post: Dict[str, Any]) -> str:
         title = html.escape(post.get('title', 'Untitled'))
         slug = post.get('slug', '')
         link = f"{self.site_url}/{slug}"
@@ -73,12 +77,14 @@ class RSSGenerator:
         <description>{description}</description>
     </item>"""
 
-    def _parse_date(self, date_str):
+    def _parse_date(self, date_str: Optional[str]) -> str:
         """Converts YYYY-MM-DD string to RFC 822 format."""
         if not date_str:
             return formatdate(usegmt=True)
         try:
-            dt = datetime.strptime(str(date_str), '%Y-%m-%d')
+            # Handle potential time components
+            iso_date = str(date_str).split(' ')[0].split('T')[0]
+            dt = datetime.strptime(iso_date, '%Y-%m-%d')
             return formatdate(dt.timestamp(), usegmt=True)
         except ValueError:
             return formatdate(usegmt=True)

@@ -1,9 +1,12 @@
 import datetime
+from typing import List, Tuple, Any
+
+from models import PostModel, ConfigModel
 
 
 class Templates:
     """HTML templates for the blog."""
-    BASE = """
+    BASE: str = """
 <!doctype html>
 <html lang="en">
 <head>
@@ -37,21 +40,21 @@ class Templates:
 </html>
 """
 
-    POST_CONTENT = """
+    POST_CONTENT: str = """
 <article>
     {html_content}
     <a href="/" role="button" class="secondary">Back to Home</a>
 </article>
 """
 
-    INDEX_CONTENT = """
+    INDEX_CONTENT: str = """
 <h2>Latest Posts {rss_link}</h2>
 <ul role="list">
 {post_list}
 </ul>
 """
 
-    NEW_ARTICLE = """---
+    NEW_ARTICLE: str = """---
 title: {title}
 date: {date}
 ---
@@ -76,18 +79,18 @@ def hello():
 
 class BlogView:
     """Handles HTML generation (View)."""
-    def __init__(self, config):
+    def __init__(self, config: ConfigModel):
         self.config = config
 
-    def _generate_social_nav(self):
-        links = []
+    def _generate_social_nav(self) -> str:
+        links: List[str] = []
         socials = self.config.get('socials')
         if socials and isinstance(socials, dict):
             for name, url in socials.items():
                 links.append(f'<li><a href="{url}" target="_blank">{name}</a></li>')
         return '\n<li class="separator" aria-hidden="true">-</li>\n'.join(links)
 
-    def _wrap_base(self, title, content):
+    def _wrap_base(self, title: str, content: str) -> str:
         return Templates.BASE.format(
             title=title,
             site_title=self.config['site_title'],
@@ -97,13 +100,13 @@ class BlogView:
             social_nav_links=self._generate_social_nav()
         )
 
-    def render_post(self, post):
+    def render_post(self, post: PostModel) -> str:
         content = Templates.POST_CONTENT.format(html_content=post.html_content)
         title = f"{post.title} | {self.config['site_title']}"
         return self._wrap_base(title, content)
 
-    def render_index(self, posts):
-        list_items = ""
+    def render_index(self, posts: List[Tuple[PostModel, str]]) -> str:
+        list_items: str = ""
         for post, url in posts:
             date_display = post.date_str
             if date_display:
@@ -117,7 +120,7 @@ class BlogView:
                 f'</li>\n'
             )
 
-        rss_link = ""
+        rss_link: str = ""
         if self.config.get('rss'):
             rss_link = ' <a href="/feed.xml" style="font-size: 0.5em; vertical-align: middle; text-decoration: none;">RSS</a>'
 
@@ -125,8 +128,8 @@ class BlogView:
         title = f"Home | {self.config['site_title']}"
         return self._wrap_base(title, content)
 
-    def render_404(self):
-        content = """
+    def render_404(self) -> str:
+        content: str = """
     <article>
         <header>
             <h2>404 - Page Not Found</h2>

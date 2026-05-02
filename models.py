@@ -1,15 +1,14 @@
 import datetime
 import json
 import os
-import re
-import sys
+from typing import Any, Dict, Optional
 
 import markdown
 
 
 class ConfigModel:
     """Manages configuration data."""
-    DEFAULT_SETTINGS = {
+    DEFAULT_SETTINGS: Dict[str, Any] = {
         "site_title": "My Blogcraft Site",
         "site_url": "http://localhost:8000",
         "site_subtitle": "Built with Blogcraft",
@@ -22,12 +21,12 @@ class ConfigModel:
         "socials": {}
     }
 
-    def __init__(self, config_file='config.json'):
-        self.config_file = config_file
-        self.settings = self.DEFAULT_SETTINGS.copy()
+    def __init__(self, config_file: str = 'config.json'):
+        self.config_file: str = config_file
+        self.settings: Dict[str, Any] = self.DEFAULT_SETTINGS.copy()
         self._load(config_file)
 
-    def _load(self, config_file):
+    def _load(self, config_file: str) -> None:
         if not os.path.exists(config_file):
             return
 
@@ -39,7 +38,7 @@ class ConfigModel:
         except json.JSONDecodeError as e:
             print(f"⚠️ Warning: Invalid JSON format in '{config_file}'. Using defaults. Details: {e}")
 
-    def save(self):
+    def save(self) -> None:
         """Saves current settings to the config file."""
         try:
             with open(self.config_file, 'w', encoding='utf-8') as f:
@@ -48,38 +47,42 @@ class ConfigModel:
         except Exception as e:
             print(f"🛑 Error saving configuration: {e}")
 
-    def get(self, key, default=None):
+    def get(self, key: str, default: Any = None) -> Any:
         return self.settings.get(key, default)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         return self.settings[key]
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: Any) -> None:
         self.settings[key] = value
 
 
 class PostModel:
     """Represents a single blog post (Model)."""
-    def __init__(self, file_path):
-        self.file_path = file_path
-        self.metadata = {}
-        self.content = ""
-        self.html_content = ""
+    def __init__(self, file_path: str):
+        self.file_path: str = file_path
+        self.metadata: Dict[str, str] = {}
+        self.content: str = ""
+        self.html_content: str = ""
         self._parse()
 
-    def _parse(self):
+    def _parse(self) -> None:
         with open(self.file_path, 'r', encoding='utf-8') as f:
             raw_content = f.read()
 
-        # Frontmatter extraction
-        frontmatter_match = re.match(r'---\s*?\n(.*?)\n---\s*?\n?(.*)', raw_content, re.DOTALL)
-        if frontmatter_match:
-            frontmatter_block = frontmatter_match.group(1).strip()
-            self.content = frontmatter_match.group(2).strip()
-            for line in frontmatter_block.split('\n'):
-                if ':' in line:
-                    key, value = line.split(':', 1)
-                    self.metadata[key.strip()] = value.strip()
+        # Frontmatter extraction (Robust string splitting)
+        if raw_content.startswith('---'):
+            parts = raw_content.split('---', 2)
+            if len(parts) >= 3:
+                frontmatter_block = parts[1].strip()
+                self.content = parts[2].strip()
+                
+                for line in frontmatter_block.split('\n'):
+                    if ':' in line:
+                        key, value = line.split(':', 1)
+                        self.metadata[key.strip()] = value.strip()
+            else:
+                self.content = raw_content
         else:
             self.content = raw_content
 
@@ -90,20 +93,22 @@ class PostModel:
         )
 
     @property
-    def title(self):
+    def title(self) -> str:
         default_title = os.path.basename(os.path.dirname(self.file_path)).replace('-', ' ').title()
         return self.metadata.get('title', default_title)
 
     @property
-    def date_str(self):
+    def date_str(self) -> str:
         return self.metadata.get('date', "N/A")
 
     @property
-    def date_obj(self):
+    def date_obj(self) -> datetime.date:
         date_str = self.date_str
         if not date_str or date_str == "N/A":
             return datetime.date.min
         try:
-            return datetime.date.fromisoformat(date_str)
+            # Handle potential time components by taking only the date part
+            iso_date = date_str.split(' ')[0].split('T')[0]
+            return datetime.date.fromisoformat(iso_date)
         except (ValueError, TypeError):
             return datetime.date.min
