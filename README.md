@@ -132,6 +132,8 @@ make          # Builds binary in dist/
 make install  # Installs to ~/.local/bin/
 ```
 
+Note: You may need to install pyinstaller, either with pipx, your distro's package manager or by installing it with pip in the virtual environment.
+
 ---
 
 ## 🧪 Testing
