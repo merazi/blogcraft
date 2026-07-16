@@ -69,6 +69,9 @@ class BlogController:
 
     def _start_watcher(self) -> None:
         """Initializes and starts the file system watcher thread."""
+        from watchdog.observers import Observer
+        from watchdog.events import FileSystemEventHandler
+
         md_dir = self.config['md_dir']
         print(f"👀 Watch mode enabled. Monitoring '{md_dir}' for changes...")
         
@@ -76,35 +79,24 @@ class BlogController:
         root_dir = os.path.abspath(os.path.join(os.getcwd(), '..'))
         full_md_path = os.path.join(root_dir, md_dir)
 
-        def watch_loop():
-            last_mtime = self._get_max_mtime(full_md_path)
-            while True:
-                time.sleep(1)
-                current_mtime = self._get_max_mtime(full_md_path)
-                if current_mtime > last_mtime:
-                    print("\n🔄 Changes detected! Rebuilding...")
-                    current_cwd = os.getcwd()
-                    os.chdir(root_dir)
-                    self.build()
-                    os.chdir(current_cwd)
-                    last_mtime = current_mtime
-        
-        watcher = threading.Thread(target=watch_loop, daemon=True)
-        watcher.start()
+        class RebuildHandler(FileSystemEventHandler):
+            def __init__(self, controller):
+                self.controller = controller
+                self.root_dir = root_dir
 
-    def _get_max_mtime(self, directory: str) -> float:
-        """Helper to get the latest modification time in a directory tree."""
-        max_mtime = 0.0
-        for root, _, files in os.walk(directory):
-            for f in files:
-                path = os.path.join(root, f)
-                try:
-                    mtime = os.path.getmtime(path)
-                    if mtime > max_mtime:
-                        max_mtime = mtime
-                except OSError:
-                    continue
-        return max_mtime
+            def on_any_event(self, event):
+                if event.is_directory:
+                    return
+                print("\n🔄 Changes detected! Rebuilding...")
+                current_cwd = os.getcwd()
+                os.chdir(self.root_dir)
+                self.controller.build()
+                os.chdir(current_cwd)
+
+        observer = Observer()
+        observer.schedule(RebuildHandler(self), full_md_path, recursive=True)
+        observer.daemon = True
+        observer.start()
 
     def build(self) -> None:
         """Orchestrates the full site build process."""
@@ -126,11 +118,15 @@ class BlogController:
         print(f"   Output: {self.config['public_dir']}/")
 
     def _prep_public_dir(self) -> None:
-        """Cleans and recreates the public output directory."""
+        """Cleans the contents of the public output directory without deleting the root."""
         public_dir = self.config['public_dir']
-        if os.path.exists(public_dir):
-            shutil.rmtree(public_dir)
         os.makedirs(public_dir, exist_ok=True)
+        for item in os.listdir(public_dir):
+            item_path = os.path.join(public_dir, item)
+            if os.path.isdir(item_path):
+                shutil.rmtree(item_path)
+            else:
+                os.unlink(item_path)
 
     def _process_all_posts(self) -> List[Tuple[PostModel, str]]:
         """Finds and renders all Markdown posts."""
