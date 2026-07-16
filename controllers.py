@@ -1,14 +1,13 @@
 import datetime
-import glob
 import http.server
-import os
 import shutil
 import socketserver
 import subprocess
 import sys
-import time
+import os
 import threading
 from typing import List, Tuple, Dict, Any, Optional
+from pathlib import Path
 
 from models import ConfigModel, PostModel
 from views import BlogView, Templates
@@ -39,15 +38,15 @@ class BlogController:
                 self.config[key] = value
 
         self.config.save()
-        os.makedirs(self.config['md_dir'], exist_ok=True)
+        Path(self.config['md_dir']).mkdir(parents=True, exist_ok=True)
         print(f"✅ Created source directory: {self.config['md_dir']}")
         print("\n✨ Setup complete! You can now create a post with 'python blogcraft.py new my-post'.")
 
     def serve(self, port: int = 8000, watch: bool = False) -> None:
         """Starts a local preview server."""
-        public_dir = self.config['public_dir']
+        public_dir = Path(self.config['public_dir'])
         
-        if not os.path.exists(public_dir):
+        if not public_dir.exists():
             print(f"⚠️  Public directory '{public_dir}' not found. Building site first...")
             self.build()
 
@@ -75,9 +74,8 @@ class BlogController:
         md_dir = self.config['md_dir']
         print(f"👀 Watch mode enabled. Monitoring '{md_dir}' for changes...")
         
-        # Absolute path to root to ensure watcher works regardless of CWD
-        root_dir = os.path.abspath(os.path.join(os.getcwd(), '..'))
-        full_md_path = os.path.join(root_dir, md_dir)
+        root_dir = Path.cwd().parent.resolve()
+        full_md_path = root_dir / md_dir
 
         class RebuildHandler(FileSystemEventHandler):
             def __init__(self, controller):
@@ -88,20 +86,20 @@ class BlogController:
                 if event.is_directory:
                     return
                 print("\n🔄 Changes detected! Rebuilding...")
-                current_cwd = os.getcwd()
+                current_cwd = Path.cwd()
                 os.chdir(self.root_dir)
                 self.controller.build()
                 os.chdir(current_cwd)
 
         observer = Observer()
-        observer.schedule(RebuildHandler(self), full_md_path, recursive=True)
+        observer.schedule(RebuildHandler(self), str(full_md_path), recursive=True)
         observer.daemon = True
         observer.start()
 
     def build(self) -> None:
         """Orchestrates the full site build process."""
-        md_dir = self.config['md_dir']
-        if not os.path.exists(md_dir):
+        md_dir = Path(self.config['md_dir'])
+        if not md_dir.exists():
             print(f"🛑 Error: Source directory '{md_dir}' not found.")
             return
 
@@ -119,42 +117,39 @@ class BlogController:
 
     def _prep_public_dir(self) -> None:
         """Cleans the contents of the public output directory without deleting the root."""
-        public_dir = self.config['public_dir']
-        os.makedirs(public_dir, exist_ok=True)
-        for item in os.listdir(public_dir):
-            item_path = os.path.join(public_dir, item)
-            if os.path.isdir(item_path):
-                shutil.rmtree(item_path)
+        public_dir = Path(self.config['public_dir'])
+        public_dir.mkdir(parents=True, exist_ok=True)
+        for item in public_dir.iterdir():
+            if item.is_dir():
+                shutil.rmtree(item)
             else:
-                os.unlink(item_path)
+                item.unlink()
 
     def _process_all_posts(self) -> List[Tuple[PostModel, str]]:
         """Finds and renders all Markdown posts."""
-        md_dir = self.config['md_dir']
+        md_dir = Path(self.config['md_dir'])
         post_filename = self.config['post_filename']
-        public_dir = self.config['public_dir']
+        public_dir = Path(self.config['public_dir'])
         
         posts_data: List[Tuple[PostModel, str]] = []
-        search_pattern = os.path.join(md_dir, '**', post_filename)
 
-        for md_path in glob.glob(search_pattern, recursive=True):
+        for md_path in md_dir.rglob(post_filename):
             try:
-                post = PostModel(md_path)
-                post_dir = os.path.dirname(md_path)
+                post = PostModel(str(md_path))
+                post_dir = md_path.parent
                 
                 # Calculate output paths
-                rel_post_dir = os.path.relpath(post_dir, md_dir)
-                target_dir = os.path.join(public_dir, 'posts', rel_post_dir)
-                target_html_path = os.path.join(target_dir, 'index.html')
+                rel_post_dir = post_dir.relative_to(md_dir)
+                target_dir = public_dir / 'posts' / rel_post_dir
+                target_html_path = target_dir / 'index.html'
                 
                 # Render and Save
-                os.makedirs(target_dir, exist_ok=True)
-                with open(target_html_path, 'w', encoding='utf-8') as f:
-                    f.write(self.view.render_post(post))
+                target_dir.mkdir(parents=True, exist_ok=True)
+                target_html_path.write_text(self.view.render_post(post), encoding='utf-8')
                 
                 self._copy_post_assets(post_dir, target_dir)
                 
-                url = os.path.relpath(target_html_path, public_dir)
+                url = target_html_path.relative_to(public_dir).as_posix()
                 posts_data.append((post, url))
                 print(f"  ✅ Post: {post.title}")
 
@@ -165,12 +160,12 @@ class BlogController:
 
     def _generate_metadata_pages(self, posts_data: List[Tuple[PostModel, str]]) -> None:
         """Generates the index, RSS feed, and 404 pages."""
-        public_dir = self.config['public_dir']
+        public_dir = Path(self.config['public_dir'])
 
         # RSS
         rss_items = []
         for post, url in posts_data:
-            slug = url.replace(os.sep, '/')
+            slug = url
             if slug.endswith('index.html'):
                 slug = slug[:-10]
             
@@ -185,28 +180,26 @@ class BlogController:
 
         # Index
         index_html = self.view.render_index(posts_data)
-        with open(os.path.join(public_dir, 'index.html'), 'w', encoding='utf-8') as f:
-            f.write(index_html)
+        (public_dir / 'index.html').write_text(index_html, encoding='utf-8')
         print("  ✅ Index")
 
         # 404
-        with open(os.path.join(public_dir, '404.html'), 'w', encoding='utf-8') as f:
-            f.write(self.view.render_404())
+        (public_dir / '404.html').write_text(self.view.render_404(), encoding='utf-8')
         print("  ✅ 404 Page")
 
     def new_article(self, slug: str) -> None:
         """Creates a new post template and opens it in the default editor."""
-        md_dir = self.config['md_dir']
+        md_dir = Path(self.config['md_dir'])
         post_filename = self.config['post_filename']
         assets_dir = self.config['assets_dir']
 
-        target_dir = os.path.join(md_dir, slug)
-        if os.path.exists(target_dir):
+        target_dir = md_dir / slug
+        if target_dir.exists():
             print(f"🛑 Error: Article directory already exists: '{target_dir}'")
             return
 
-        os.makedirs(os.path.join(target_dir, assets_dir))
-        target_md_path = os.path.join(target_dir, post_filename)
+        (target_dir / assets_dir).mkdir(parents=True, exist_ok=True)
+        target_md_path = target_dir / post_filename
         
         post_title = slug.replace('-', ' ').title()
         content = Templates.NEW_ARTICLE.format(
@@ -216,11 +209,10 @@ class BlogController:
             assets_dir=assets_dir
         )
         
-        with open(target_md_path, 'w', encoding='utf-8') as f:
-            f.write(content)
+        target_md_path.write_text(content, encoding='utf-8')
 
         print(f"\n🎉 Successfully created new article structure at: '{target_dir}'")
-        self._open_in_editor(target_md_path)
+        self._open_in_editor(str(target_md_path))
         print("\nNext step: Run 'python blogcraft.py build' to generate the site.")
 
     def _open_in_editor(self, file_path: str) -> None:
@@ -235,34 +227,33 @@ class BlogController:
 
     def _copy_external_assets(self) -> None:
         """Copies core CSS files from the application base or CWD to public."""
-        public_dir = self.config['public_dir']
+        public_dir = Path(self.config['public_dir'])
         assets = ['code_highlight.css', 'style.css']
         
         # Determine application base (works for source and pyinstaller bundles)
-        app_base = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+        app_base = Path(getattr(sys, '_MEIPASS', Path(__file__).parent.resolve()))
 
         for filename in assets:
             # Prefer local override in CWD, fall back to app bundle
-            src = filename if os.path.exists(filename) else os.path.join(app_base, filename)
+            src = Path(filename) if Path(filename).exists() else app_base / filename
             
-            if os.path.exists(src):
-                shutil.copy2(src, os.path.join(public_dir, filename))
+            if src.exists():
+                shutil.copy2(src, public_dir / filename)
             else:
                 print(f"  ⚠️ Warning: External asset '{filename}' not found.")
 
-    def _copy_post_assets(self, source_dir: str, target_dir: str) -> None:
+    def _copy_post_assets(self, source_dir: Path, target_dir: Path) -> None:
         """Copies all files from a post directory (except the Markdown file) to target."""
         post_filename = self.config['post_filename']
-        for item in os.listdir(source_dir):
-            if item == post_filename:
+        for item in source_dir.iterdir():
+            if item.name == post_filename:
                 continue
             
-            src = os.path.join(source_dir, item)
-            dst = os.path.join(target_dir, item)
+            dst = target_dir / item.name
             
-            if os.path.isdir(src):
-                if os.path.exists(dst):
+            if item.is_dir():
+                if dst.exists():
                     shutil.rmtree(dst)
-                shutil.copytree(src, dst)
+                shutil.copytree(item, dst)
             else:
-                shutil.copy2(src, dst)
+                shutil.copy2(item, dst)
