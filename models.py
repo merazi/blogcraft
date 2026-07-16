@@ -4,6 +4,7 @@ import os
 from typing import Any, Dict, Optional
 
 import markdown
+import yaml
 
 
 class ConfigModel:
@@ -70,17 +71,19 @@ class PostModel:
         with open(self.file_path, 'r', encoding='utf-8') as f:
             raw_content = f.read()
 
-        # Frontmatter extraction (Robust string splitting)
         if raw_content.startswith('---'):
             parts = raw_content.split('---', 2)
             if len(parts) >= 3:
                 frontmatter_block = parts[1].strip()
                 self.content = parts[2].strip()
                 
-                for line in frontmatter_block.split('\n'):
-                    if ':' in line:
-                        key, value = line.split(':', 1)
-                        self.metadata[key.strip()] = value.strip()
+                try:
+                    parsed_meta = yaml.safe_load(frontmatter_block)
+                    if isinstance(parsed_meta, dict):
+                        # Ensure all keys and values are strings to maintain compatibility
+                        self.metadata = {str(k): str(v) for k, v in parsed_meta.items()}
+                except yaml.YAMLError as e:
+                    print(f"⚠️ Warning: Invalid YAML in frontmatter of {self.file_path}: {e}")
             else:
                 self.content = raw_content
         else:
