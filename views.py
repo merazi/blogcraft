@@ -1,58 +1,13 @@
 import datetime
+import os
 from typing import List, Tuple, Any
+import jinja2
 
 from models import PostModel, ConfigModel
 
 
 class Templates:
     """HTML templates for the blog."""
-    BASE: str = """
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{title}</title>
-    <link rel="stylesheet" href="/code_highlight.css" />
-    <link rel="stylesheet" href="/style.css" />
-</head>
-<body>
-    <main class="container">
-        <header>
-            <hgroup>
-                <h1><a href="/" class="site-title">{site_title}</a></h1>
-                <p>{site_subtitle}</p>
-            </hgroup>
-            <nav>
-                <ul>
-                    <li><a href="/">Home</a></li>
-                    <li class="separator" aria-hidden="true">|</li>
-                    {social_nav_links}
-                </ul>
-            </nav>
-        </header>
-        {content}
-        <footer>
-            <small>&copy; {year} {site_title}</small>
-        </footer>
-    </main>
-</body>
-</html>
-"""
-
-    POST_CONTENT: str = """
-<article>
-    {html_content}
-    <a href="/" role="button" class="secondary">Back to Home</a>
-</article>
-"""
-
-    INDEX_CONTENT: str = """
-<h2>Latest Posts {rss_link}</h2>
-<ul role="list">
-{post_list}
-</ul>
-"""
 
     NEW_ARTICLE: str = """---
 title: {title}
@@ -81,62 +36,41 @@ class BlogView:
     """Handles HTML generation (View)."""
     def __init__(self, config: ConfigModel):
         self.config = config
+        
+        import sys
+        app_base = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+        templates_dir = self.config.get('templates_dir', 'templates')
+        
+        searchpath = [templates_dir] if os.path.exists(templates_dir) else []
+        bundled_templates = os.path.join(app_base, 'templates')
+        if os.path.exists(bundled_templates) and bundled_templates not in searchpath:
+            searchpath.append(bundled_templates)
+            
+        self.env = jinja2.Environment(loader=jinja2.FileSystemLoader(searchpath))
 
-    def _generate_social_nav(self) -> str:
-        links: List[str] = []
-        socials = self.config.get('socials')
-        if socials and isinstance(socials, dict):
-            for name, url in socials.items():
-                links.append(f'<li><a href="{url}" target="_blank">{name}</a></li>')
-        return '\n<li class="separator" aria-hidden="true">-</li>\n'.join(links)
-
-    def _wrap_base(self, title: str, content: str) -> str:
-        return Templates.BASE.format(
-            title=title,
-            site_title=self.config['site_title'],
-            site_subtitle=self.config.get('site_subtitle', 'Generated with Python'),
-            content=content,
-            year=datetime.datetime.now().year,
-            social_nav_links=self._generate_social_nav()
-        )
+    def _get_template_context(self, title: str) -> dict:
+        return {
+            'title': title,
+            'site_title': self.config['site_title'],
+            'site_subtitle': self.config.get('site_subtitle', 'Generated with Python'),
+            'year': datetime.datetime.now().year,
+            'socials': self.config.get('socials', {})
+        }
 
     def render_post(self, post: PostModel) -> str:
-        content = Templates.POST_CONTENT.format(html_content=post.html_content)
-        title = f"{post.title} | {self.config['site_title']}"
-        return self._wrap_base(title, content)
+        template = self.env.get_template('post.html')
+        context = self._get_template_context(f"{post.title} | {self.config['site_title']}")
+        context['post'] = post
+        return template.render(**context)
 
     def render_index(self, posts: List[Tuple[PostModel, str]]) -> str:
-        list_items: str = ""
-        for post, url in posts:
-            date_display = post.date_str
-            if date_display:
-                date_display = date_display.split(' ')[0].split('T')[0]
-            list_items += (
-                f'<li>'
-                f'<a href="/{url}">{post.title}</a> '
-                f'<span class="post-date">'
-                f'({date_display})'
-                f'</span>'
-                f'</li>\n'
-            )
-
-        rss_link: str = ""
-        if self.config.get('rss'):
-            rss_link = ' <a href="/feed.xml" style="font-size: 0.5em; vertical-align: middle; text-decoration: none;">RSS</a>'
-
-        content = Templates.INDEX_CONTENT.format(post_list=list_items, rss_link=rss_link)
-        title = f"Home | {self.config['site_title']}"
-        return self._wrap_base(title, content)
+        template = self.env.get_template('index.html')
+        context = self._get_template_context(f"Home | {self.config['site_title']}")
+        context['posts'] = posts
+        context['rss_enabled'] = self.config.get('rss', False)
+        return template.render(**context)
 
     def render_404(self) -> str:
-        content: str = """
-    <article>
-        <header>
-            <h2>404 - Page Not Found</h2>
-        </header>
-        <p>Oops! The page you are looking for does not exist.</p>
-        <a href="/" role="button">Go to Home</a>
-    </article>
-    """
-        title = f"404 | {self.config['site_title']}"
-        return self._wrap_base(title, content)
+        template = self.env.get_template('404.html')
+        context = self._get_template_context(f"404 | {self.config['site_title']}")
+        return template.render(**context)

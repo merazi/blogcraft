@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+
+{% block content %}
+<article>
+    {{ post.html_content | safe }}
+    <a href="/" role="button" class="secondary">Back to Home</a>
+</article>
+{% endblock %}

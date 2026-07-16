@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Latest Posts {% if rss_enabled %}<a href="/feed.xml" style="font-size: 0.5em; vertical-align: middle; text-decoration: none;">RSS</a>{% endif %}</h2>
+<ul role="list">
+{% for post, url in posts %}
+    {% set date_display = post.date_str %}
+    {% if date_display %}
+        {% set date_display = date_display.split(' ')[0].split('T')[0] %}
+    {% endif %}
+    <li>
+        <a href="/{{ url }}">{{ post.title }}</a> 
+        <span class="post-date">
+            ({% if date_display %}{{ date_display }}{% else %}N/A{% endif %})
+        </span>
+    </li>
+{% endfor %}
+</ul>
+{% endblock %}

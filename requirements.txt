@@ -1,3 +1,4 @@
 Markdown
 Pygments
 pyinstaller
+Jinja2
