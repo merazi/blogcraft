@@ -110,8 +110,7 @@ class PostModel:
         if not date_str or date_str == "N/A":
             return datetime.date.min
         try:
-            # Handle potential time components by taking only the date part
-            iso_date = date_str.split(' ')[0].split('T')[0]
-            return datetime.date.fromisoformat(iso_date)
+            from dateutil import parser
+            return parser.parse(date_str).date()
         except (ValueError, TypeError):
             return datetime.date.min

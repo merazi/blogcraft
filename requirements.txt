@@ -4,3 +4,4 @@ pyinstaller
 Jinja2
 PyYAML
 watchdog
+python-dateutil

@@ -78,13 +78,12 @@ class RSSGenerator:
     </item>"""
 
     def _parse_date(self, date_str: Optional[str]) -> str:
-        """Converts YYYY-MM-DD string to RFC 822 format."""
+        """Converts date string to RFC 822 format."""
         if not date_str:
             return formatdate(usegmt=True)
         try:
-            # Handle potential time components
-            iso_date = str(date_str).split(' ')[0].split('T')[0]
-            dt = datetime.strptime(iso_date, '%Y-%m-%d')
+            from dateutil import parser
+            dt = parser.parse(date_str)
             return formatdate(dt.timestamp(), usegmt=True)
-        except ValueError:
+        except (ValueError, TypeError):
             return formatdate(usegmt=True)
