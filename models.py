@@ -14,6 +14,7 @@ class ConfigModel:
         "site_url": "http://localhost:8000",
         "site_subtitle": "Built with Blogcraft",
         "rss": True,
+        "archive_page_size": 10,
         "md_dir": "md",
         "public_dir": "public",
         "post_filename": "article.md",

@@ -70,6 +70,21 @@ class BlogView:
         context['rss_enabled'] = self.config.get('rss', False)
         return template.render(**context)
 
+    def render_archive(
+        self,
+        posts: List[Tuple[PostModel, str]],
+        page: int,
+        page_count: int,
+    ) -> str:
+        template = self.env.get_template('archive.html')
+        context = self._get_template_context(f"Archive | {self.config['site_title']}")
+        context.update({
+            'posts': posts,
+            'page': page,
+            'page_count': page_count,
+        })
+        return template.render(**context)
+
     def render_404(self) -> str:
         template = self.env.get_template('404.html')
         context = self._get_template_context(f"404 | {self.config['site_title']}")

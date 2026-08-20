@@ -1,4 +1,5 @@
 import datetime
+import errno
 import http.server
 import shutil
 import socketserver
@@ -55,16 +56,23 @@ class BlogController:
         if watch:
             self._start_watcher()
 
-        print(f"🌐 Serving blog at http://localhost:{port}")
-        print("Press Ctrl+C to stop.")
-        
         handler = http.server.SimpleHTTPRequestHandler
-        with socketserver.TCPServer(("", port), handler) as httpd:
-            try:
+        try:
+            with socketserver.TCPServer(("", port), handler) as httpd:
+                print(f"🌐 Serving blog at http://localhost:{port}")
+                print("Press Ctrl+C to stop.")
                 httpd.serve_forever()
-            except KeyboardInterrupt:
-                print("\n🛑 Server stopped.")
-                sys.exit(0)
+        except KeyboardInterrupt:
+            print("\n🛑 Server stopped.")
+            sys.exit(0)
+        except OSError as error:
+            if error.errno == errno.EADDRINUSE:
+                print(
+                    f"🛑 Port {port} is already in use. "
+                    f"Try 'blogcraft serve --port {port + 1}'."
+                )
+                return
+            raise
 
     def _start_watcher(self) -> None:
         """Initializes and starts the file system watcher thread."""
@@ -110,7 +118,10 @@ class BlogController:
         posts_data = self._process_all_posts()
         posts_data.sort(key=lambda x: x[0].date_obj, reverse=True)
 
-        self._generate_metadata_pages(posts_data)
+        current_year = datetime.date.today().year
+        current_posts = [post for post in posts_data if post[0].date_obj.year == current_year]
+        archived_posts = [post for post in posts_data if post[0].date_obj.year != current_year]
+        self._generate_metadata_pages(posts_data, current_posts, archived_posts)
 
         print(f"\n✨ Site generation complete! ({len(posts_data)} posts)")
         print(f"   Output: {self.config['public_dir']}/")
@@ -158,8 +169,13 @@ class BlogController:
         
         return posts_data
 
-    def _generate_metadata_pages(self, posts_data: List[Tuple[PostModel, str]]) -> None:
-        """Generates the index, RSS feed, and 404 pages."""
+    def _generate_metadata_pages(
+        self,
+        posts_data: List[Tuple[PostModel, str]],
+        current_posts: List[Tuple[PostModel, str]],
+        archived_posts: List[Tuple[PostModel, str]],
+    ) -> None:
+        """Generates the index, archive, RSS feed, and 404 pages."""
         public_dir = Path(self.config['public_dir'])
 
         # RSS
@@ -179,13 +195,36 @@ class BlogController:
         RSSGenerator(self.config).generate(rss_items)
 
         # Index
-        index_html = self.view.render_index(posts_data)
+        index_html = self.view.render_index(current_posts)
         (public_dir / 'index.html').write_text(index_html, encoding='utf-8')
         print("  ✅ Index")
+
+        self._generate_archive_pages(archived_posts, public_dir)
 
         # 404
         (public_dir / '404.html').write_text(self.view.render_404(), encoding='utf-8')
         print("  ✅ 404 Page")
+
+    def _generate_archive_pages(
+        self,
+        archived_posts: List[Tuple[PostModel, str]],
+        public_dir: Path,
+    ) -> None:
+        """Generates the paginated archive pages for posts before this year."""
+        page_size = max(1, int(self.config.get('archive_page_size', 10)))
+        page_count = max(1, (len(archived_posts) + page_size - 1) // page_size)
+
+        for page_number in range(1, page_count + 1):
+            start = (page_number - 1) * page_size
+            page_posts = archived_posts[start:start + page_size]
+            page_path = public_dir / 'archive' / 'index.html' if page_number == 1 else (
+                public_dir / 'archive' / 'page' / str(page_number) / 'index.html'
+            )
+            page_path.parent.mkdir(parents=True, exist_ok=True)
+            page_html = self.view.render_archive(page_posts, page_number, page_count)
+            page_path.write_text(page_html, encoding='utf-8')
+
+        print(f"  ✅ Archive ({len(archived_posts)} posts, {page_count} page(s))")
 
     def new_article(self, slug: str) -> None:
         """Creates a new post template and opens it in the default editor."""

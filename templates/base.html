@@ -18,6 +18,8 @@
                 <ul>
                     <li><a href="/">Home</a></li>
                     <li class="separator" aria-hidden="true">|</li>
+                    <li><a href="/archive/">Archive</a></li>
+                    <li class="separator" aria-hidden="true">|</li>
                     {% for name, url in socials.items() %}
                     <li><a href="{{ url }}" target="_blank">{{ name }}</a></li>
                     {% if not loop.last %}<li class="separator" aria-hidden="true">-</li>{% endif %}

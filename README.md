@@ -23,6 +23,7 @@
 - **🎨 Syntax Highlighting:** Beautiful code blocks powered by Pygments.
 - **📱 Responsive Design:** Modern, mobile-friendly CSS included out of the box.
 - **📡 RSS Feed:** Automatic generation of `feed.xml` for your readers.
+- **🗄️ Post Archives:** Older posts are moved off the home page into a paginated archive.
 - **👀 Live Preview:** Built-in dev server with `--watch` mode for real-time rebuilding.
 - **🛠️ Standalone Binary:** Optional build process to create a single-file executable.
 
@@ -78,6 +79,8 @@ python blogcraft.py serve    # Preview at http://localhost:8000
 └── public/            # Generated static files (deploy this!)
 ```
 
+The home page lists posts published in the current year. Posts from previous years are available at `/archive/`; additional archive pages use `/archive/page/2/`, `/archive/page/3/`, and so on. Set `archive_page_size` to control the number of posts on each archive page. The RSS feed includes all published posts.
+
 ---
 
 ## ⚙️ Configuration
@@ -90,6 +93,7 @@ Settings are managed in `config.json`. Most options can be configured during `in
     "site_url": "https://example.com",
     "site_subtitle": "Thoughts on code and life",
     "rss": true,
+    "archive_page_size": 10,
     "md_dir": "md",
     "public_dir": "public",
     "post_filename": "article.md",

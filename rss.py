@@ -1,8 +1,10 @@
 import os
-import html
-from datetime import datetime
+from datetime import datetime, timezone
 from email.utils import formatdate
 from typing import List, Dict, Any, Optional
+from urllib.parse import urljoin
+import xml.etree.ElementTree as ET
+from dateutil import parser
 
 from models import ConfigModel
 
@@ -31,24 +33,22 @@ class RSSGenerator:
 
         print("Generating RSS feed...")
 
-        items: List[str] = []
-        # Sort posts by date descending
-        sorted_posts = sorted(posts, key=lambda x: x.get('date', ''), reverse=True)
+        # Sort posts by their source date, keeping the feed deterministic.
+        sorted_posts = sorted(posts, key=self._sort_key, reverse=True)
+        channel = ET.Element('channel')
+        self._add_text(channel, 'title', self.site_title)
+        self._add_text(channel, 'link', self.site_url)
+        self._add_text(channel, 'description', self.description)
+        self._add_text(channel, 'lastBuildDate', formatdate(usegmt=True))
+        self._add_text(channel, 'generator', 'blogcraft')
 
         for post in sorted_posts:
-            items.append(self._create_item(post))
+            channel.append(self._create_item(post))
 
-        rss_xml = f"""<?xml version="1.0" encoding="UTF-8" ?>
-<rss version="2.0">
-<channel>
-    <title>{html.escape(self.site_title)}</title>
-    <link>{self.site_url}</link>
-    <description>{html.escape(self.description)}</description>
-    <lastBuildDate>{formatdate(usegmt=True)}</lastBuildDate>
-    <generator>blogcraft</generator>
-    {''.join(items)}
-</channel>
-</rss>"""
+        rss = ET.Element('rss', {'version': '2.0'})
+        rss.append(channel)
+        rss_xml = ET.tostring(rss, encoding='unicode')
+        rss_xml = '<?xml version="1.0" encoding="UTF-8"?>\n' + rss_xml
 
         output_path = os.path.join(self.public_dir, self.rss_filename)
         os.makedirs(self.public_dir, exist_ok=True)
@@ -58,32 +58,44 @@ class RSSGenerator:
 
         print(f"RSS feed written to {output_path}")
 
-    def _create_item(self, post: Dict[str, Any]) -> str:
-        title = html.escape(post.get('title', 'Untitled'))
-        slug = post.get('slug', '')
-        link = f"{self.site_url}/{slug}"
-        # Use description or excerpt if available, otherwise empty
-        description = html.escape(post.get('description', ''))
+    def _create_item(self, post: Dict[str, Any]) -> ET.Element:
+        slug = str(post.get('slug', '')).lstrip('/')
+        link = urljoin(f'{self.site_url}/', slug)
+        item = ET.Element('item')
+        self._add_text(item, 'title', str(post.get('title', 'Untitled')))
+        self._add_text(item, 'link', link)
+        guid = ET.SubElement(item, 'guid', {'isPermaLink': 'true'})
+        guid.text = link
+        self._add_text(item, 'pubDate', self._parse_date(post.get('date')))
+        self._add_text(item, 'description', str(post.get('description', '')))
+        return item
 
-        date_str = post.get('date')
-        pub_date = self._parse_date(date_str)
-
-        return f"""
-    <item>
-        <title>{title}</title>
-        <link>{link}</link>
-        <guid>{link}</guid>
-        <pubDate>{pub_date}</pubDate>
-        <description>{description}</description>
-    </item>"""
+    @staticmethod
+    def _add_text(parent: ET.Element, name: str, value: str) -> None:
+        element = ET.SubElement(parent, name)
+        element.text = value
 
     def _parse_date(self, date_str: Optional[str]) -> str:
         """Converts date string to RFC 822 format."""
         if not date_str:
-            return formatdate(usegmt=True)
+            return ''
         try:
-            from dateutil import parser
             dt = parser.parse(date_str)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
             return formatdate(dt.timestamp(), usegmt=True)
-        except (ValueError, TypeError):
-            return formatdate(usegmt=True)
+        except (ValueError, TypeError, OverflowError):
+            return ''
+
+    @staticmethod
+    def _sort_key(post: Dict[str, Any]) -> datetime:
+        date_str = post.get('date')
+        if not date_str:
+            return datetime.min
+        try:
+            parsed = parser.parse(str(date_str))
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            return parsed.astimezone(timezone.utc).replace(tzinfo=None)
+        except (ValueError, TypeError, OverflowError):
+            return datetime.min

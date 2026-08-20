@@ -3,6 +3,7 @@
     "site_url": "http://localhost:8800",
     "site_subtitle": "Your blog subtitle",
     "rss": true,
+    "archive_page_size": 10,
     "md_dir": "md",
     "public_dir": "public",
     "post_filename": "article.md",

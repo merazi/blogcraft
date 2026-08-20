@@ -16,4 +16,6 @@
     </li>
 {% endfor %}
 </ul>
+{% if not posts %}<p>No posts published this year.</p>{% endif %}
+<p><a href="/archive/">View the archive</a></p>
 {% endblock %}

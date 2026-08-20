@@ -3,9 +3,13 @@ import shutil
 import unittest
 import json
 import tempfile
+import datetime
+import socket
+import xml.etree.ElementTree as ET
 from blogcraft import cli
 from controllers import BlogController
 from models import ConfigModel, PostModel
+from rss import RSSGenerator
 
 class TestBlogcraft(unittest.TestCase):
     def setUp(self):
@@ -92,6 +96,59 @@ class TestBlogcraft(unittest.TestCase):
             content = f.read()
             self.assertIn("<title>Rss Test</title>", content)
             self.assertIn("<link>http://localhost:8000/posts/rss-test/</link>", content)
+
+    def test_archive_filters_current_posts_and_paginates(self):
+        current_year = datetime.date.today().year
+        os.makedirs("md/current-post")
+        os.makedirs("md/old-post")
+        os.makedirs("md/older-post")
+        for slug, year in (("current-post", current_year), ("old-post", current_year - 1), ("older-post", current_year - 2)):
+            with open(os.path.join("md", slug, "article.md"), "w") as f:
+                f.write(f"---\ntitle: {slug}\ndate: {year}-05-01\n---\nContent")
+
+        self.controller.config['archive_page_size'] = 1
+        with open("style.css", "w") as f: f.write("")
+        with open("code_highlight.css", "w") as f: f.write("")
+        self.controller.build()
+
+        with open("public/index.html") as f:
+            index = f.read()
+        with open("public/archive/index.html") as f:
+            archive = f.read()
+        with open("public/archive/page/2/index.html") as f:
+            archive_page_two = f.read()
+        self.assertIn("current-post", index)
+        self.assertNotIn("old-post", index)
+        self.assertIn("old-post", archive)
+        self.assertIn("older-post", archive_page_two)
+
+    def test_rss_escapes_xml_and_orders_dates(self):
+        self.controller.config['site_url'] = 'https://example.com'
+        self.controller.config['site_title'] = 'A & B'
+        self.controller.config['site_description'] = 'A <description>'
+        self.controller.config['public_dir'] = 'public'
+        RSSGenerator(self.controller.config).generate([
+            {'title': 'Older', 'date': '2025-12-01', 'slug': 'posts/older/'},
+            {'title': 'New & Improved', 'date': '2026-01-01T12:00:00+00:00', 'slug': 'posts/new/'}
+        ])
+
+        root = ET.parse("public/feed.xml").getroot()
+        channel = root.find("channel")
+        self.assertEqual(channel.findtext("title"), "A & B")
+        items = channel.findall("item")
+        self.assertEqual(items[0].findtext("title"), "New & Improved")
+        self.assertEqual(items[0].findtext("link"), "https://example.com/posts/new/")
+
+    def test_serve_reports_port_conflict(self):
+        public_dir = os.path.join(self.test_dir, "public")
+        os.makedirs(public_dir)
+        occupied_socket = socket.socket()
+        occupied_socket.bind(("", 0))
+        occupied_port = occupied_socket.getsockname()[1]
+        try:
+            self.controller.serve(port=occupied_port)
+        finally:
+            occupied_socket.close()
 
 if __name__ == '__main__':
     unittest.main()
